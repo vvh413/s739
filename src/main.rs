@@ -42,20 +42,19 @@ struct DecodeArgs {
 }
 
 fn write(image: &mut DynamicImage, data: &BitSlice<u8, Lsb0>, seek: usize) {
-  let pixel_channel_iter = image
+  image
     .as_mut_rgb8()
     .unwrap()
     .pixels_mut()
     .flat_map(|pix| pix.channels_mut())
-    .skip(seek << 3);
-
-  for (pixel_channel, bit) in pixel_channel_iter.zip(data.iter()) {
-    pixel_channel.view_bits_mut::<Lsb0>().set(0, *bit);
-  }
+    .skip(seek << 3)
+    .zip(data.iter())
+    .for_each(|(pixel_channel, bit)| {
+      pixel_channel.view_bits_mut::<Lsb0>().set(0, *bit);
+    });
 }
 
 fn read(image: &DynamicImage, size: usize, seek: usize) -> BitVec<u8> {
-  let mut buf = BitVec::new();
   image
     .as_rgb8()
     .unwrap()
@@ -63,8 +62,8 @@ fn read(image: &DynamicImage, size: usize, seek: usize) -> BitVec<u8> {
     .flat_map(|pix| pix.channels())
     .skip(seek << 3)
     .take(size << 3)
-    .for_each(|pixel_channel| buf.push((pixel_channel & 0x1) == 1));
-  buf
+    .map(|pixel_channel| (pixel_channel & 0x1) == 1)
+    .collect()
 }
 
 fn encode(args: EncodeArgs) -> Result<()> {
