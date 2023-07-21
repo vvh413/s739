@@ -12,4 +12,3 @@ anyhow = "1.0.72"
 bitvec = "1.0.1"
 clap = { version = "4.3.17", features = ["derive"] }
 image = "0.24.6"
-tokio = { version = "1.29.1", features = ["full"] }

@@ -71,7 +71,7 @@ fn encode(args: EncodeArgs) -> Result<()> {
   let mut input_image = image::open(input)?;
 
   assert!(
-    input_image.width() * input_image.height() * 3 > data.len() as u32,
+    input_image.width() * input_image.height() * 3 > (data.len() << 3) as u32,
     "invalid data size"
   );
 
@@ -90,7 +90,7 @@ fn decode(args: DecodeArgs) -> Result<()> {
 
   let size: usize = read(&input_image, 4, 0).load_le();
   assert!(
-    input_image.width() * input_image.height() * 3 > size as u32,
+    input_image.width() * input_image.height() * 3 > (size << 3) as u32,
     "invalid data size"
   );
 
