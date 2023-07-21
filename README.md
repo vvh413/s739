@@ -4,7 +4,7 @@ Steganography tool
 
 Features:
  - image containers (any lossless RGB/RGBA)
- - supports as input plain text, files and stdin
+ - supports plain text, files and stdin
  - LSB algorithm
 
 ## Installation
