@@ -2,9 +2,9 @@
 
 Steganography tool
 
-Supported:
- - image containers (any lossless)
- - plain text data
+Features:
+ - image containers (any lossless RGB/RGBA)
+ - supports as input plain text, files and stdin
  - LSB algorithm
 
 ## Installation
@@ -19,7 +19,6 @@ cargo install --path .
 
 ```sh 
 $ s739 -h 
-
 Steganography tool
 
 Usage: s739 <COMMAND>
@@ -40,12 +39,14 @@ Options:
 $ s739 encode -h 
 Encode data to image
 
-Usage: s739 encode --input <INPUT> --output <OUTPUT> --data <DATA>
+Usage: s739 encode --input <INPUT> --output <OUTPUT> <--text <TEXT>|--file <FILE>|--stdin>
 
 Options:
   -i, --input <INPUT>    Input file
   -o, --output <OUTPUT>  Output file
-  -d, --data <DATA>      data to encode
+  -t, --text <TEXT>      Encode plain text data
+  -f, --file <FILE>      Encode file
+  -s, --stdin            Read data from stdin
   -h, --help             Print help
 ```
 
@@ -55,9 +56,10 @@ Options:
 $ s739 decode -h
 Decode data from image
 
-Usage: s739 decode --input <INPUT>
+Usage: s739 decode [OPTIONS] --input <INPUT>
 
 Options:
   -i, --input <INPUT>  Input file
+  -f, --file <FILE>    Write data to file
   -h, --help           Print help
 ```

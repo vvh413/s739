@@ -1,82 +1,65 @@
+use std::fs::File;
+use std::io::{BufReader, Read, Write};
+
 use anyhow::Result;
 use bitvec::prelude::*;
-use clap::{Args, Parser, Subcommand};
-use image::{DynamicImage, Pixel};
+use clap::Parser;
+use cli::{Cli, Command, DecodeArgs, EncodeArgs};
+use image::DynamicImage;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-  #[command(subcommand)]
-  command: Command,
-}
-
-#[derive(Subcommand, Debug)]
-enum Command {
-  /// Encode data to image
-  Encode(EncodeArgs),
-
-  /// Decode data from image
-  Decode(DecodeArgs),
-}
-
-#[derive(Args, Debug)]
-struct EncodeArgs {
-  /// Input file
-  #[arg(short, long)]
-  input: String,
-
-  /// Output file
-  #[arg(short, long)]
-  output: String,
-
-  /// data to encode
-  #[arg(short, long)]
-  data: String,
-}
-
-#[derive(Args, Debug)]
-struct DecodeArgs {
-  /// Input file
-  #[arg(short, long)]
-  input: String,
-}
+mod cli;
 
 fn write(image: &mut DynamicImage, data: &BitSlice<u8, Lsb0>, seek: usize) {
-  image
-    .as_mut_rgb8()
-    .unwrap()
-    .pixels_mut()
-    .flat_map(|pix| pix.channels_mut())
-    .skip(seek << 3)
-    .zip(data.iter())
-    .for_each(|(pixel_channel, bit)| {
-      pixel_channel.view_bits_mut::<Lsb0>().set(0, *bit);
-    });
+  match image {
+    DynamicImage::ImageRgb8(img_buf) => img_buf.iter_mut(),
+    DynamicImage::ImageRgba8(img_buf) => img_buf.iter_mut(),
+    _ => panic!("invalid color format"),
+  }
+  .skip(seek << 3)
+  .zip(data.iter())
+  .for_each(|(pixel, bit)| {
+    pixel.view_bits_mut::<Lsb0>().set(0, *bit);
+  })
 }
 
 fn read(image: &DynamicImage, size: usize, seek: usize) -> BitVec<u8> {
-  image
-    .as_rgb8()
-    .unwrap()
-    .pixels()
-    .flat_map(|pix| pix.channels())
-    .skip(seek << 3)
-    .take(size << 3)
-    .map(|pixel_channel| (pixel_channel & 0x1) == 1)
-    .collect()
+  match image {
+    DynamicImage::ImageRgb8(img_buf) => img_buf.iter(),
+    DynamicImage::ImageRgba8(img_buf) => img_buf.iter(),
+    _ => panic!("invalid color format"),
+  }
+  .skip(seek << 3)
+  .take(size << 3)
+  .map(|pixel_channel| (pixel_channel & 0x1) == 1)
+  .collect()
 }
 
 fn encode(args: EncodeArgs) -> Result<()> {
   let EncodeArgs { input, output, data } = args;
+
   let mut input_image = image::open(input)?;
 
+  let mut buf = Vec::new();
+  match (data.text, data.file, data.stdin) {
+    (Some(text), _, _) => {
+      buf = format!("{text}\n").as_bytes().to_vec();
+    }
+    (_, Some(file), _) => {
+      let _ = BufReader::new(File::open(file)?).read_to_end(&mut buf)?;
+    }
+    (_, _, true) => {
+      let _ = std::io::stdin().read_to_end(&mut buf)?;
+    }
+    _ => unreachable!(),
+  };
+
   assert!(
-    input_image.width() * input_image.height() * 3 > (data.len() << 3) as u32,
+    input_image.width() * input_image.height() * 3 > (buf.len() << 3) as u32,
     "invalid data size"
   );
 
-  write(&mut input_image, (data.len() as u32).to_le_bytes().view_bits(), 0);
-  write(&mut input_image, data.as_bytes().view_bits(), 4);
+  write(&mut input_image, (buf.len() as u32).to_le_bytes().view_bits(), 0);
+  write(&mut input_image, buf.view_bits(), 4);
 
   input_image.save(output)?;
 
@@ -85,7 +68,7 @@ fn encode(args: EncodeArgs) -> Result<()> {
 }
 
 fn decode(args: DecodeArgs) -> Result<()> {
-  let DecodeArgs { input } = args;
+  let DecodeArgs { input, file } = args;
   let input_image = image::open(input)?;
 
   let size: usize = read(&input_image, 4, 0).load_le();
@@ -96,7 +79,10 @@ fn decode(args: DecodeArgs) -> Result<()> {
 
   let data = read(&input_image, size, 4);
 
-  println!("{}", String::from_utf8(data.as_raw_slice().to_vec())?);
+  match file {
+    Some(file) => File::create(file)?.write_all(data.as_raw_slice()),
+    None => std::io::stdout().write_all(data.as_raw_slice()),
+  }?;
 
   Ok(())
 }
