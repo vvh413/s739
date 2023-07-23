@@ -8,7 +8,7 @@ use image::DynamicImage;
 
 use crate::cli::DecodeArgs;
 
-fn read(image: &DynamicImage, size: usize, seek: usize) -> BitVec<u8> {
+pub fn read(image: &DynamicImage, size: usize, seek: usize) -> BitVec<u8> {
   match image {
     DynamicImage::ImageRgb8(img_buf) => img_buf.iter(),
     DynamicImage::ImageRgba8(img_buf) => img_buf.iter(),

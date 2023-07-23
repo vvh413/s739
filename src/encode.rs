@@ -6,7 +6,7 @@ use anyhow::Result;
 use bitvec::prelude::*;
 use image::DynamicImage;
 
-fn write(image: &mut DynamicImage, data: &BitSlice<u8, Lsb0>, seek: usize) {
+pub fn write(image: &mut DynamicImage, data: &BitSlice<u8, Lsb0>, seek: usize) {
   match image {
     DynamicImage::ImageRgb8(img_buf) => img_buf.iter_mut(),
     DynamicImage::ImageRgba8(img_buf) => img_buf.iter_mut(),
