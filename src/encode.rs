@@ -39,7 +39,7 @@ pub fn encode(args: EncodeArgs) -> Result<()> {
   };
 
   assert!(
-    input_image.width() * input_image.height() * 3 > (buf.len() << 3) as u32,
+    input_image.width() * input_image.height() * input_image.color().channel_count() as u32 > (buf.len() << 3) as u32,
     "invalid data size"
   );
 
