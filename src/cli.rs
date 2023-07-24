@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueHint};
+use clap_complete::{Generator, Shell};
 
 use crate::png_opts::{CompressionType, FilterType};
 
@@ -18,16 +19,19 @@ pub enum Command {
 
   /// Decode data from image
   Decode(DecodeArgs),
+
+  /// Generate shell completions
+  Generate { shell: Shell },
 }
 
 #[derive(Args, Debug)]
 pub struct EncodeArgs {
   /// Input file
-  #[arg(short, long)]
+  #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub input: PathBuf,
 
   /// Output file
-  #[arg(short, long)]
+  #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub output: PathBuf,
 
   #[command(flatten)]
@@ -51,11 +55,11 @@ pub struct PngOpts {
 #[group(required = true, multiple = false)]
 pub struct Data {
   /// Encode plain text data
-  #[arg(short, long)]
+  #[arg(short, long, value_hint = ValueHint::Other)]
   pub text: Option<String>,
 
   /// Encode file
-  #[arg(short, long)]
+  #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub file: Option<PathBuf>,
 
   /// Read data from stdin
@@ -66,10 +70,14 @@ pub struct Data {
 #[derive(Args, Debug)]
 pub struct DecodeArgs {
   /// Input file
-  #[arg(short, long)]
+  #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub input: PathBuf,
 
   /// Write data to file
-  #[arg(short, long)]
+  #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub file: Option<PathBuf>,
+}
+
+pub fn print_completions<G: Generator>(gen: G, cmd: &mut clap::Command) {
+  clap_complete::generate(gen, cmd, cmd.get_name().to_string(), &mut std::io::stdout());
 }

@@ -6,14 +6,37 @@ Features:
  - Image containers (8-bit RGB/RGBA PNG). JPEG and other image formats can be used as input file, but they will be re-encoded to 8-bit RGB/RGBA PNG on the output.
  - Supports plain text, files and stdin
  - LSB algorithm
+ - Shell completions
 
 ## Installation
 
+#### Static build from releases
+```sh
+curl -OL https://github.com/vvh413/s739/releases/latest/download/s739 --output ~/.local/bin/
+```
+
+#### Build from source
 ```sh
 git clone https://github.com/vvh413/s739
 cd s739
 cargo install --path .
 ```
+
+#### Shell completions
+Add the following to your shell config file (`~/.bashrc`, `~/.zshrc`, etc.):
+- bash:
+```sh
+eval "$(s739 generate bash)"
+```
+- zsh:
+```sh
+eval "$(s739 generate zsh)"
+```
+- fish:
+```sh
+s739 generate fish | source
+```
+Supported shells: bash, zsh, fish, elvish, powershell.
 
 ## Usage
 
@@ -24,9 +47,10 @@ Steganography tool
 Usage: s739 <COMMAND>
 
 Commands:
-  encode  Encode data to image
-  decode  Decode data from image
-  help    Print this message or the help of the given subcommand(s)
+  encode    Encode data to image
+  decode    Decode data from image
+  generate  Generate shell completions
+  help      Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
