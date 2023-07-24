@@ -1,10 +1,10 @@
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::{BufReader, BufWriter, Read};
 
 use crate::cli::EncodeArgs;
 use anyhow::Result;
 use bitvec::prelude::*;
-use image::DynamicImage;
+use image::{DynamicImage, ImageEncoder};
 
 pub fn write(image: &mut DynamicImage, data: &BitSlice<u8, Lsb0>, seek: usize) {
   match image {
@@ -20,7 +20,12 @@ pub fn write(image: &mut DynamicImage, data: &BitSlice<u8, Lsb0>, seek: usize) {
 }
 
 pub fn encode(args: EncodeArgs) -> Result<()> {
-  let EncodeArgs { input, output, data } = args;
+  let EncodeArgs {
+    input,
+    output,
+    data,
+    png_opts,
+  } = args;
 
   let mut input_image = image::open(input)?;
 
@@ -46,7 +51,18 @@ pub fn encode(args: EncodeArgs) -> Result<()> {
   write(&mut input_image, (buf.len() as u32).to_le_bytes().view_bits(), 0);
   write(&mut input_image, buf.view_bits(), 4);
 
-  input_image.save(output)?;
+  let buffered_file_write = &mut BufWriter::new(File::create(output)?);
+  image::codecs::png::PngEncoder::new_with_quality(
+    buffered_file_write,
+    png_opts.png_compression.into(),
+    png_opts.png_filter.into(),
+  )
+  .write_image(
+    input_image.as_bytes(),
+    input_image.width(),
+    input_image.height(),
+    input_image.color(),
+  )?;
 
   println!("done");
   Ok(())

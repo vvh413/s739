@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
+use crate::png_opts::{CompressionType, FilterType};
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
@@ -29,7 +31,20 @@ pub struct EncodeArgs {
   pub output: PathBuf,
 
   #[command(flatten)]
+  pub png_opts: PngOpts,
+
+  #[command(flatten)]
   pub data: Data,
+}
+
+#[derive(Args, Debug)]
+pub struct PngOpts {
+  /// PNG compression type
+  #[arg(long, default_value_t = CompressionType::Fast)]
+  pub png_compression: CompressionType,
+  /// PNG filter type
+  #[arg(long, default_value_t = FilterType::Adaptive)]
+  pub png_filter: FilterType,
 }
 
 #[derive(Args, Debug)]

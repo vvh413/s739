@@ -3,8 +3,8 @@
 Steganography tool
 
 Features:
- - image containers (any lossless RGB/RGBA)
- - supports plain text, files and stdin
+ - Image containers (8-bit RGB/RGBA PNG). JPEG and other image formats can be used as input file, but they will be re-encoded to 8-bit RGB/RGBA PNG on the output.
+ - Supports plain text, files and stdin
  - LSB algorithm
 
 ## Installation
@@ -39,15 +39,25 @@ Options:
 $ s739 encode -h 
 Encode data to image
 
-Usage: s739 encode --input <INPUT> --output <OUTPUT> <--text <TEXT>|--file <FILE>|--stdin>
+Usage: s739 encode [OPTIONS] --input <INPUT> --output <OUTPUT> <--text <TEXT>|--file <FILE>|--stdin>
 
 Options:
-  -i, --input <INPUT>    Input file
-  -o, --output <OUTPUT>  Output file
-  -t, --text <TEXT>      Encode plain text data
-  -f, --file <FILE>      Encode file
-  -s, --stdin            Read data from stdin
-  -h, --help             Print help
+  -i, --input <INPUT>
+          Input file
+  -o, --output <OUTPUT>
+          Output file
+      --png-compression <PNG_COMPRESSION>
+          PNG compression type [default: fast] [possible values: default, fast, best]
+      --png-filter <PNG_FILTER>
+          PNG filter type [default: adaptive] [possible values: no, sub, up, avg, paeth, adaptive]
+  -t, --text <TEXT>
+          Encode plain text data
+  -f, --file <FILE>
+          Encode file
+  -s, --stdin
+          Read data from stdin
+  -h, --help
+          Print help
 ```
 
 ### Decode
