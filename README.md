@@ -1,8 +1,8 @@
 # s739
 
-Steganography tool
+## Steganography tool
 
-Features:
+### Features
  - Image containers (8-bit RGB/RGBA PNG). JPEG and other image formats can be used as input file, but they will be re-encoded to 8-bit RGB/RGBA PNG on the output.
  - Supports plain text, files and stdin
  - LSB algorithm
