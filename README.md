@@ -12,7 +12,8 @@ Features:
 
 #### Static build from releases
 ```sh
-curl -OL https://github.com/vvh413/s739/releases/latest/download/s739 --output ~/.local/bin/
+curl -L https://github.com/vvh413/s739/releases/latest/download/s739 --output ~/.local/bin/s739
+chmod +x ~/.local/bin/s739
 ```
 
 #### Build from source
