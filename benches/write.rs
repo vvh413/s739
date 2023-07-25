@@ -1,30 +1,22 @@
 #![feature(test)]
 
 use bitvec::view::AsBits;
-use image::DynamicImage;
+use criterion::{criterion_group, criterion_main};
 use s739::encode;
 extern crate test;
 
-fn prepare(width: u32, height: u32, data_size: usize) -> (DynamicImage, Vec<u8>) {
-  let image = image::DynamicImage::ImageRgba8(image::ImageBuffer::new(width, height));
-  let data = vec![0u8; data_size];
-  (image, data)
+fn write(c: &mut criterion::Criterion) {
+  let mut group = c.benchmark_group("write");
+  for size in [16 * 1024, 512 * 1024, 4 * 1024 * 1024, 8_000_000].iter() {
+    group.throughput(criterion::Throughput::Bytes(*size as u64));
+    group.bench_with_input(criterion::BenchmarkId::from_parameter(size), size, |b, &size| {
+      let mut image = image::DynamicImage::ImageRgba8(image::ImageBuffer::new(4000, 4000));
+      let data = vec![0u8; size];
+      b.iter(|| encode::write(&mut image, data.as_bits(), 0))
+    });
+  }
+  group.finish();
 }
 
-#[bench]
-fn write_small(b: &mut test::Bencher) {
-  let (mut image, data) = prepare(4000, 4000, 16 * 1024);
-  b.iter(|| encode::write(&mut image, data.as_bits(), 0))
-}
-
-#[bench]
-fn write_medium(b: &mut test::Bencher) {
-  let (mut image, data) = prepare(4000, 4000, 512 * 1024);
-  b.iter(|| encode::write(&mut image, data.as_bits(), 0))
-}
-
-#[bench]
-fn write_full(b: &mut test::Bencher) {
-  let (mut image, data) = prepare(4000, 4000, (4000 * 4000 * 4) >> 3);
-  b.iter(|| encode::write(&mut image, data.as_bits(), 0))
-}
+criterion_group!(benches, write);
+criterion_main!(benches);

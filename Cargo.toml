@@ -5,11 +5,20 @@ edition = "2021"
 authors = ["vvh413"]
 description = "Steganography tool"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 anyhow = "1.0.72"
 bitvec = "1.0.1"
 clap = { version = "4.3.17", features = ["derive"] }
 clap_complete = "4.3.2"
 image = "0.24.6"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "read"
+harness = false
+
+[[bench]]
+name = "write"
+harness = false
