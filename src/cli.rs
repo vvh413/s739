@@ -24,7 +24,7 @@ pub enum Command {
   Generate { shell: Shell },
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct EncodeArgs {
   /// Input file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
@@ -41,7 +41,7 @@ pub struct EncodeArgs {
   pub data: Data,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone, Default)]
 pub struct PngOpts {
   /// PNG compression type
   #[arg(long, default_value_t = CompressionType::Fast)]
@@ -51,7 +51,7 @@ pub struct PngOpts {
   pub png_filter: FilterType,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 #[group(required = true, multiple = false)]
 pub struct Data {
   /// Encode plain text data
@@ -67,7 +67,7 @@ pub struct Data {
   pub stdin: bool,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct DecodeArgs {
   /// Input file
   #[arg(short, long, value_hint = ValueHint::FilePath)]

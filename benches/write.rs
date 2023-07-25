@@ -1,9 +1,6 @@
-#![feature(test)]
-
 use bitvec::view::AsBits;
 use criterion::{criterion_group, criterion_main};
 use s739::encode;
-extern crate test;
 
 fn write(c: &mut criterion::Criterion) {
   let mut group = c.benchmark_group("write");

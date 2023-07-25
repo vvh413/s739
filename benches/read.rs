@@ -1,8 +1,5 @@
-#![feature(test)]
-
 use criterion::{criterion_group, criterion_main};
 use s739::decode;
-extern crate test;
 
 fn read(c: &mut criterion::Criterion) {
   let mut group = c.benchmark_group("read");

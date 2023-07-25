@@ -64,6 +64,5 @@ pub fn encode(args: EncodeArgs) -> Result<()> {
     input_image.color(),
   )?;
 
-  println!("done");
   Ok(())
 }
