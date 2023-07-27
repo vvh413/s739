@@ -15,19 +15,8 @@ pub fn read(image: &DynamicImage, size: usize, seek: usize) -> BitVec<u8> {
   }
   .skip(seek << 3)
   .take(size << 3)
-  .map(|pixel_channel| (pixel_channel & 0x1) == 1)
+  .map(|pixel| (pixel & 0x1) == 1)
   .collect()
-}
-
-pub fn read_to(image: &DynamicImage, buf: &mut BitSlice<u8, Lsb0>, seek: usize) {
-  match image {
-    DynamicImage::ImageRgb8(img_buf) => img_buf.iter(),
-    DynamicImage::ImageRgba8(img_buf) => img_buf.iter(),
-    _ => panic!("invalid color format"),
-  }
-  .skip(seek << 3)
-  .zip(buf.iter_mut())
-  .for_each(|(pixel, mut bit)| bit.set((pixel & 0x1) == 1))
 }
 
 pub fn decode(args: DecodeArgs) -> Result<()> {
