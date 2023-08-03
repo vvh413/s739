@@ -16,12 +16,14 @@ fn default() -> Result<()> {
       file: None,
       stdin: false,
     },
+    key: None,
   };
   encode::encode(enc_args.clone())?;
 
   let dec_args = DecodeArgs {
     input: "/tmp/s739_out_default.png".into(),
     file: Some("/tmp/s739_result.txt".into()),
+    key: None,
   };
   decode::decode(dec_args.clone())?;
 

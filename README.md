@@ -81,6 +81,8 @@ Options:
           Encode file
   -s, --stdin
           Read data from stdin
+  -k, --key <KEY>
+          Secret key
   -h, --help
           Print help
 ```
@@ -96,5 +98,6 @@ Usage: s739 decode [OPTIONS] --input <INPUT>
 Options:
   -i, --input <INPUT>  Input file
   -f, --file <FILE>    Write data to file
+  -k, --key <KEY>      Secret key
   -h, --help           Print help
 ```

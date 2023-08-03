@@ -1,34 +1,64 @@
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read};
+use std::slice::IterMut;
 
-use crate::cli::EncodeArgs;
-use anyhow::Result;
+use crate::cli::{Data, EncodeArgs};
+use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
 use image::{DynamicImage, ImageEncoder};
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha20Rng;
+use rand_seeder::Seeder;
 
-pub fn write(image: &mut DynamicImage, data: &BitSlice<u8, Lsb0>, seek: usize) {
-  match image {
-    DynamicImage::ImageRgb8(img_buf) => img_buf.iter_mut(),
-    DynamicImage::ImageRgba8(img_buf) => img_buf.iter_mut(),
-    _ => panic!("invalid color format"),
-  }
-  .skip(seek << 3)
-  .zip(data.iter())
-  .for_each(|(pixel, bit)| {
-    pixel.view_bits_mut::<Lsb0>().set(0, *bit);
-  })
+pub struct Encoder<'a> {
+  image_iter: IterMut<'a, u8>,
+  data: &'a Vec<u8>,
+  max_step: usize,
+  rng: ChaCha20Rng,
 }
 
-pub fn encode(args: EncodeArgs) -> Result<()> {
-  let EncodeArgs {
-    input,
-    output,
-    data,
-    png_opts,
-  } = args;
+impl<'a> Encoder<'a> {
+  pub fn new(image: &'a mut DynamicImage, data: &'a Vec<u8>, key: Option<String>) -> Result<Self> {
+    let image_iter = match image {
+      DynamicImage::ImageRgb8(img_buf) => img_buf.iter_mut(),
+      DynamicImage::ImageRgba8(img_buf) => img_buf.iter_mut(),
+      _ => panic!("invalid color format"),
+    };
 
-  let mut input_image = image::open(input)?;
+    let max_step = (image_iter.len() - 32) / (data.len() << 3);
+    ensure!(max_step > 0, "invalid data size");
 
+    Ok(Self {
+      image_iter,
+      data,
+      max_step,
+      rng: ChaCha20Rng::from_seed(Seeder::from(key).make_seed()),
+    })
+  }
+
+  pub fn write(&mut self, data: &BitSlice<u8, Lsb0>, max_step: usize) -> Result<()> {
+    for bit in data {
+      let step = if max_step > 1 {
+        self.rng.gen_range(0..max_step)
+      } else {
+        0
+      };
+      match self.image_iter.nth(step) {
+        Some(pixel) => pixel.view_bits_mut::<Lsb0>().set(0, *bit),
+        None => bail!("write: image ended, but data not"),
+      }
+    }
+    Ok(())
+  }
+
+  pub fn write_data(&mut self) -> Result<()> {
+    self.write((self.data.len() as u32).to_le_bytes().view_bits(), 1)?;
+    self.write(self.data.view_bits(), self.max_step)?;
+    Ok(())
+  }
+}
+
+fn read_data(data: Data) -> Result<Vec<u8>> {
   let mut buf = Vec::new();
   match (data.text, data.file, data.stdin) {
     (Some(text), _, _) => {
@@ -42,14 +72,23 @@ pub fn encode(args: EncodeArgs) -> Result<()> {
     }
     _ => unreachable!(),
   };
+  Ok(buf)
+}
 
-  assert!(
-    input_image.width() * input_image.height() * input_image.color().channel_count() as u32 > (buf.len() << 3) as u32,
-    "invalid data size"
-  );
+pub fn encode(args: EncodeArgs) -> Result<()> {
+  let EncodeArgs {
+    input,
+    output,
+    data,
+    png_opts,
+    key,
+  } = args;
 
-  write(&mut input_image, (buf.len() as u32).to_le_bytes().view_bits(), 0);
-  write(&mut input_image, buf.view_bits(), 4);
+  let mut input_image = image::open(input)?;
+  let data = read_data(data)?;
+
+  let mut encoder = Encoder::new(&mut input_image, &data, key)?;
+  encoder.write_data()?;
 
   let buffered_file_write = &mut BufWriter::new(File::create(output)?);
   image::codecs::png::PngEncoder::new_with_quality(

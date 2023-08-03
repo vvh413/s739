@@ -39,6 +39,10 @@ pub struct EncodeArgs {
 
   #[command(flatten)]
   pub data: Data,
+
+  /// Secret key
+  #[arg(short, long, value_hint = ValueHint::Other)]
+  pub key: Option<String>,
 }
 
 #[derive(Args, Debug, Clone, Default)]
@@ -76,6 +80,10 @@ pub struct DecodeArgs {
   /// Write data to file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub file: Option<PathBuf>,
+
+  /// Secret key
+  #[arg(short, long, value_hint = ValueHint::Other)]
+  pub key: Option<String>,
 }
 
 pub fn print_completions<G: Generator>(gen: G, cmd: &mut clap::Command) {
