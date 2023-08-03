@@ -6,6 +6,7 @@
  - Image containers (8-bit RGB/RGBA PNG). JPEG and other image formats can be used as input file, but they will be re-encoded to 8-bit RGB/RGBA PNG on the output.
  - Supports plain text, files and stdin
  - LSB algorithm
+ - Secret key for random steps between pixels
  - Shell completions
 
 ## Installation
