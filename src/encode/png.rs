@@ -1,8 +1,4 @@
-use std::fs::File;
-use std::io::BufWriter;
-use std::path::PathBuf;
-
-use crate::cli::PngOpts;
+use crate::cli::ImageOpts;
 use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
 use image::{DynamicImage, ImageEncoder};
@@ -59,12 +55,12 @@ impl Encoder for PngEncoder {
     Ok(())
   }
 
-  fn save(&mut self, output: PathBuf, png_opts: PngOpts) -> Result<()> {
-    let buffered_file_write = &mut BufWriter::new(File::create(output)?);
+  fn encode_image(&mut self, image_opts: ImageOpts) -> Result<Vec<u8>> {
+    let mut buffer = Vec::new();
     image::codecs::png::PngEncoder::new_with_quality(
-      buffered_file_write,
-      png_opts.png_compression.into(),
-      png_opts.png_filter.into(),
+      &mut buffer,
+      image_opts.png.png_compression.into(),
+      image_opts.png.png_filter.into(),
     )
     .write_image(
       self.image.as_bytes(),
@@ -72,6 +68,6 @@ impl Encoder for PngEncoder {
       self.image.height(),
       self.image.color(),
     )?;
-    Ok(())
+    Ok(buffer)
   }
 }

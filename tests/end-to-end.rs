@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use anyhow::Result;
-use s739::cli::{Data, DecodeArgs, EncodeArgs, PngOpts};
+use s739::cli::{Data, DecodeArgs, EncodeArgs, ImageOpts};
 use s739::{decode, encode};
 
 #[test]
@@ -10,7 +10,7 @@ fn png() -> Result<()> {
   let enc_args = EncodeArgs {
     input: "/tmp/s739_in.png".into(),
     output: "/tmp/s739_out_default.png".into(),
-    png_opts: PngOpts::default(),
+    image_opts: ImageOpts::default(),
     data: Data {
       text: Some("e2e test".repeat(3)),
       file: None,
@@ -40,7 +40,7 @@ fn jpeg() -> Result<()> {
   let enc_args = EncodeArgs {
     input: "/tmp/s739_in.jpg".into(),
     output: "/tmp/s739_out_default.jpg".into(),
-    png_opts: PngOpts::default(),
+    image_opts: ImageOpts::default(),
     data: Data {
       text: Some("e2e test".repeat(3)),
       file: None,

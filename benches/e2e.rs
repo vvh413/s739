@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main};
-use s739::cli::{Data, DecodeArgs, EncodeArgs, PngOpts};
+use s739::cli::{Data, DecodeArgs, EncodeArgs, ImageOpts};
 use s739::{decode, encode};
 
 fn prepare(size: usize, ext: &str) -> (EncodeArgs, DecodeArgs) {
@@ -7,7 +7,7 @@ fn prepare(size: usize, ext: &str) -> (EncodeArgs, DecodeArgs) {
   let enc_args = EncodeArgs {
     input: format!("/tmp/s739_decode_test.{ext}").into(),
     output: format!("/tmp/s739_out_{size}.{ext}").into(),
-    png_opts: PngOpts::default(),
+    image_opts: ImageOpts::default(),
     data: Data {
       text: None,
       file: Some("/tmp/s739_decode_bench.txt".into()),

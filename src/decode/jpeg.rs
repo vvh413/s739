@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use anyhow::{ensure, Result};
 use bitvec::prelude::*;
 use mozjpeg_sys::{
@@ -21,14 +19,11 @@ pub struct JpegDecoder {
 }
 
 impl JpegDecoder {
-  pub fn new(image_path: PathBuf, key: Option<String>) -> Result<Self> {
+  pub fn new(image_buffer: &Vec<u8>, key: Option<String>) -> Result<Self> {
     let (cinfo, coefs_ptr) = unsafe {
-      let (mut cinfo, file) = decompress(image_path.to_str().expect("invalid path"))?;
+      let mut cinfo = decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
-
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      libc::fclose(file);
-
       (cinfo, coefs_ptr)
     };
 

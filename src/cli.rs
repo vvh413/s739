@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand, ValueHint};
 use clap_complete::{Generator, Shell};
 
-use crate::png_opts::{CompressionType, FilterType};
+use crate::opts::png::{CompressionType, FilterType};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -35,7 +35,7 @@ pub struct EncodeArgs {
   pub output: PathBuf,
 
   #[command(flatten)]
-  pub png_opts: PngOpts,
+  pub image_opts: ImageOpts,
 
   #[command(flatten)]
   pub data: Data,
@@ -43,6 +43,14 @@ pub struct EncodeArgs {
   /// Secret key
   #[arg(short, long, value_hint = ValueHint::Other)]
   pub key: Option<String>,
+}
+
+#[derive(Args, Debug, Clone, Default)]
+pub struct ImageOpts {
+  #[command(flatten)]
+  pub png: PngOpts,
+  #[command(flatten)]
+  pub jpeg: JpegOpts,
 }
 
 #[derive(Args, Debug, Clone, Default)]
@@ -54,6 +62,9 @@ pub struct PngOpts {
   #[arg(long, default_value_t = FilterType::Adaptive)]
   pub png_filter: FilterType,
 }
+
+#[derive(Args, Debug, Clone, Default)]
+pub struct JpegOpts {}
 
 #[derive(Args, Debug, Clone)]
 #[group(required = true, multiple = false)]

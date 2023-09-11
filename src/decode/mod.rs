@@ -1,7 +1,6 @@
 pub mod jpeg;
 pub mod png;
 
-use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -18,10 +17,10 @@ pub trait Decoder {
   fn read_data(&mut self) -> Result<Vec<u8>>;
 }
 
-pub fn new_decoder(input: PathBuf, key: Option<String>) -> Result<Box<dyn Decoder>> {
+fn new_decoder(input: PathBuf, key: Option<String>) -> Result<Box<dyn Decoder>> {
   match image::ImageFormat::from_path(input.clone())? {
     image::ImageFormat::Png => Ok(Box::new(PngDecoder::new(image::open(input)?, key)?)),
-    image::ImageFormat::Jpeg => Ok(Box::new(JpegDecoder::new(input, key)?)),
+    image::ImageFormat::Jpeg => Ok(Box::new(JpegDecoder::new(&std::fs::read(input)?, key)?)),
     _ => bail!("invalid image format"),
   }
 }
@@ -33,7 +32,7 @@ pub fn decode(args: DecodeArgs) -> Result<()> {
   let data = decoder.read_data()?;
 
   match file {
-    Some(file) => File::create(file)?.write_all(&data),
+    Some(file) => std::fs::write(file, data),
     None => std::io::stdout().write_all(&data),
   }?;
 

@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use anyhow::{ensure, Result};
 use bitvec::slice::BitSlice;
 use bitvec::view::BitView;
@@ -12,7 +10,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
-use crate::cli::PngOpts;
+use crate::cli::ImageOpts;
 use crate::utils::{compress, decompress, get_total_size};
 
 use super::Encoder;
@@ -24,13 +22,12 @@ pub struct JpegEncoder {
 }
 
 impl JpegEncoder {
-  pub fn new(image_path: PathBuf, key: Option<String>) -> Result<Self> {
+  pub fn new(image_buffer: &Vec<u8>, key: Option<String>) -> Result<Self> {
     let (cinfo, coefs_ptr) = unsafe {
-      let (mut cinfo, file) = decompress(image_path.to_str().expect("invalid path"))?;
+      let mut cinfo = decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
 
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      libc::fclose(file);
 
       (cinfo, coefs_ptr)
     };
@@ -99,9 +96,11 @@ impl Encoder for JpegEncoder {
     Ok(())
   }
 
-  fn save(&mut self, output: PathBuf, _png_opts: PngOpts) -> Result<()> {
-    unsafe {
-      let (mut dstinfo, f_dst) = compress(output.to_str().expect("invalid path"))?;
+  fn encode_image(&mut self, _image_opts: ImageOpts) -> Result<Vec<u8>> {
+    let buffer: Vec<u8> = unsafe {
+      let buffer_ptr: *mut *mut u8 = &mut [0u8; 0].as_mut_ptr();
+      let buffer_size: *mut u64 = &mut 0;
+      let mut dstinfo = compress(buffer_ptr, buffer_size)?;
 
       jpeg_copy_critical_parameters(&self.cinfo, &mut dstinfo);
 
@@ -109,11 +108,11 @@ impl Encoder for JpegEncoder {
 
       jpeg_finish_compress(&mut dstinfo);
       jpeg_destroy_compress(&mut dstinfo);
-      libc::fclose(f_dst);
-
       jpeg_finish_decompress(&mut self.cinfo);
       jpeg_destroy_decompress(&mut self.cinfo);
-    }
-    Ok(())
+
+      Vec::from_raw_parts(*buffer_ptr, *buffer_size as usize, *buffer_size as usize)
+    };
+    Ok(buffer)
   }
 }

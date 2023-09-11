@@ -1,39 +1,29 @@
-use std::ffi::CString;
-
 use anyhow::Result;
 use mozjpeg_sys::{
   jpeg_compress_struct, jpeg_create_compress, jpeg_create_decompress, jpeg_decompress_struct, jpeg_error_mgr,
-  jpeg_std_error, jpeg_stdio_dest, jpeg_stdio_src,
+  jpeg_mem_dest, jpeg_mem_src, jpeg_std_error,
 };
 
-pub unsafe fn open(file: &str, mode: &str) -> Result<*mut libc::FILE> {
-  let file = CString::new(file)?;
-  let mode = CString::new(mode)?;
-  Ok(libc::fopen(file.as_ptr(), mode.as_ptr()))
-}
-
-pub unsafe fn decompress(file: &str) -> Result<(jpeg_decompress_struct, *mut libc::FILE)> {
+pub unsafe fn decompress(buffer: &Vec<u8>) -> Result<jpeg_decompress_struct> {
   let mut err: jpeg_error_mgr = std::mem::zeroed();
   let mut cinfo: jpeg_decompress_struct = std::mem::zeroed();
   cinfo.common.err = jpeg_std_error(&mut err);
   jpeg_create_decompress(&mut cinfo);
 
-  let file = open(file, "rb")?;
-  jpeg_stdio_src(&mut cinfo, file);
+  jpeg_mem_src(&mut cinfo, buffer.as_ptr(), buffer.len() as u64);
 
-  Ok((cinfo, file))
+  Ok(cinfo)
 }
 
-pub unsafe fn compress(file: &str) -> Result<(jpeg_compress_struct, *mut libc::FILE)> {
+pub unsafe fn compress(buffer_ptr: *mut *mut u8, buffer_size: *mut u64) -> Result<jpeg_compress_struct> {
   let mut err: jpeg_error_mgr = std::mem::zeroed();
   let mut cinfo: jpeg_compress_struct = std::mem::zeroed();
   cinfo.common.err = jpeg_std_error(&mut err);
   jpeg_create_compress(&mut cinfo);
 
-  let file = open(file, "wb")?;
-  jpeg_stdio_dest(&mut cinfo, file);
+  jpeg_mem_dest(&mut cinfo, buffer_ptr, buffer_size);
 
-  Ok((cinfo, file))
+  Ok(cinfo)
 }
 
 pub unsafe fn get_total_size(cinfo: &jpeg_decompress_struct) -> usize {
