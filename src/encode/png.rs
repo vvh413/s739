@@ -1,4 +1,4 @@
-use crate::cli::ImageOpts;
+use crate::options::ImageOptions;
 use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
 use image::{DynamicImage, ImageEncoder};
@@ -55,19 +55,15 @@ impl Encoder for PngEncoder {
     Ok(())
   }
 
-  fn encode_image(&mut self, image_opts: ImageOpts) -> Result<Vec<u8>> {
+  fn encode_image(&mut self, image_opts: ImageOptions) -> Result<Vec<u8>> {
     let mut buffer = Vec::new();
-    image::codecs::png::PngEncoder::new_with_quality(
-      &mut buffer,
-      image_opts.png.png_compression.into(),
-      image_opts.png.png_filter.into(),
-    )
-    .write_image(
-      self.image.as_bytes(),
-      self.image.width(),
-      self.image.height(),
-      self.image.color(),
-    )?;
+    image::codecs::png::PngEncoder::new_with_quality(&mut buffer, image_opts.png.compression, image_opts.png.filter)
+      .write_image(
+        self.image.as_bytes(),
+        self.image.width(),
+        self.image.height(),
+        self.image.color(),
+      )?;
     Ok(buffer)
   }
 }

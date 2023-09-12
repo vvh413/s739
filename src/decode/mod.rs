@@ -1,13 +1,10 @@
 pub mod jpeg;
 pub mod png;
 
-use std::io::Write;
 use std::path::PathBuf;
 
 use anyhow::{bail, Result};
 use bitvec::slice::BitSlice;
-
-use crate::cli::DecodeArgs;
 
 use self::jpeg::JpegDecoder;
 use self::png::PngDecoder;
@@ -17,24 +14,10 @@ pub trait Decoder {
   fn read_data(&mut self) -> Result<Vec<u8>>;
 }
 
-fn new_decoder(input: PathBuf, key: Option<String>) -> Result<Box<dyn Decoder>> {
+pub fn new_decoder(input: PathBuf, key: Option<String>) -> Result<Box<dyn Decoder>> {
   match image::ImageFormat::from_path(input.clone())? {
     image::ImageFormat::Png => Ok(Box::new(PngDecoder::new(image::open(input)?, key)?)),
     image::ImageFormat::Jpeg => Ok(Box::new(JpegDecoder::new(&std::fs::read(input)?, key)?)),
     _ => bail!("invalid image format"),
   }
-}
-
-pub fn decode(args: DecodeArgs) -> Result<()> {
-  let DecodeArgs { input, file, key } = args;
-
-  let mut decoder = new_decoder(input, key)?;
-  let data = decoder.read_data()?;
-
-  match file {
-    Some(file) => std::fs::write(file, data),
-    None => std::io::stdout().write_all(&data),
-  }?;
-
-  Ok(())
 }

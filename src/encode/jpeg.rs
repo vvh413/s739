@@ -10,7 +10,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
-use crate::cli::ImageOpts;
+use crate::options::ImageOptions;
 use crate::utils::{compress, decompress, get_total_size};
 
 use super::Encoder;
@@ -96,7 +96,7 @@ impl Encoder for JpegEncoder {
     Ok(())
   }
 
-  fn encode_image(&mut self, _image_opts: ImageOpts) -> Result<Vec<u8>> {
+  fn encode_image(&mut self, _image_opts: ImageOptions) -> Result<Vec<u8>> {
     let buffer: Vec<u8> = unsafe {
       let buffer_ptr: *mut *mut u8 = &mut [0u8; 0].as_mut_ptr();
       let buffer_size: *mut u64 = &mut 0;
