@@ -1,6 +1,6 @@
 [package]
 name = "s739"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 authors = ["vvh413"]
 description = "Steganography tool"
