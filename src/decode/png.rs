@@ -48,6 +48,7 @@ impl Decoder for PngDecoder {
     let size = bits![mut u8, Lsb0; 0u8; 32];
     self.read(size, 0, 0)?;
     let size: usize = size.load();
+    ensure!(size != 0, "no data found");
 
     let max_step = (self.image.width() * self.image.height() * self.image.color().channel_count() as u32 - 32) as usize
       / (size << 3);

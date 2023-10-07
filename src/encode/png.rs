@@ -45,6 +45,7 @@ impl Encoder for PngEncoder {
   }
 
   fn write_data(&mut self, data: &[u8]) -> Result<()> {
+    ensure!(!data.is_empty(), "data is empty");
     let max_step = (self.image.width() * self.image.height() * self.image.color().channel_count() as u32 - 32) as usize
       / (data.len() << 3);
 

@@ -81,6 +81,7 @@ impl Encoder for JpegEncoder {
     Ok(())
   }
   fn write_data(&mut self, data: &[u8]) -> Result<()> {
+    ensure!(!data.is_empty(), "data is empty");
     let max_step = (self.total_size - 32) / (data.len() << 3);
     ensure!(max_step > 0, "invalid data size");
 

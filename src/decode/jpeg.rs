@@ -76,6 +76,7 @@ impl Decoder for JpegDecoder {
     let size = bits![mut u8, Lsb0; 0u8; 32];
     self.read(size, 0, 0)?;
     let size: usize = size.load();
+    ensure!(size != 0, "no data found");
 
     let max_step = (self.total_size - 32) / (size << 3);
     ensure!(max_step > 0, "invalid data size");
