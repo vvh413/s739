@@ -23,7 +23,7 @@ chmod +x ~/.local/bin/s739
 ```sh
 git clone https://github.com/vvh413/s739
 cd s739
-cargo install --path .
+cargo install --path . --features cli
 ```
 
 #### Shell completions

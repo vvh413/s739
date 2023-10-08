@@ -1,3 +1,4 @@
+#[cfg(feature = "cli")]
 mod cli;
 
 use std::fs::File;
