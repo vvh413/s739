@@ -15,9 +15,10 @@ pub trait Decoder {
 }
 
 pub fn new_decoder(input: PathBuf, key: Option<String>) -> Result<Box<dyn Decoder>> {
-  match image::ImageFormat::from_path(input.clone())? {
-    image::ImageFormat::Png => Ok(Box::new(PngDecoder::new(image::open(input)?, key)?)),
-    image::ImageFormat::Jpeg => Ok(Box::new(JpegDecoder::new(&std::fs::read(input)?, key)?)),
+  let image_buf = std::fs::read(input)?;
+  match image::guess_format(&image_buf)? {
+    image::ImageFormat::Png => Ok(Box::new(PngDecoder::new(image::load_from_memory(&image_buf)?, key)?)),
+    image::ImageFormat::Jpeg => Ok(Box::new(JpegDecoder::new(&image_buf, key)?)),
     _ => bail!("invalid image format"),
   }
 }

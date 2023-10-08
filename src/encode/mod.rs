@@ -17,9 +17,10 @@ pub trait Encoder {
 }
 
 pub fn new_encoder(input: PathBuf, key: Option<String>) -> Result<Box<dyn Encoder>> {
-  match image::ImageFormat::from_path(input.clone())? {
-    image::ImageFormat::Png => Ok(Box::new(PngEncoder::new(image::open(input)?, key)?)),
-    image::ImageFormat::Jpeg => Ok(Box::new(JpegEncoder::new(&std::fs::read(input)?, key)?)),
+  let image_buf = std::fs::read(input)?;
+  match image::guess_format(&image_buf)? {
+    image::ImageFormat::Png => Ok(Box::new(PngEncoder::new(image::load_from_memory(&image_buf)?, key)?)),
+    image::ImageFormat::Jpeg => Ok(Box::new(JpegEncoder::new(&image_buf, key)?)),
     _ => bail!("invalid image format"),
   }
 }
