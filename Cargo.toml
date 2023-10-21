@@ -1,6 +1,6 @@
 [package]
 name = "s739"
-version = "0.4.4"
+version = "0.4.5"
 edition = "2021"
 authors = ["vvh413"]
 description = "Steganography tool"
@@ -8,7 +8,7 @@ description = "Steganography tool"
 [dependencies]
 anyhow = "1.0.72"
 bitvec = "1.0.1"
-image = "0.24.6"
+image = { version = "0.24.6", default-features = false, features = ["png"] }
 libc = "0.2.147"
 mozjpeg-sys = "2.0.0"
 rand = "0.8.5"
@@ -19,6 +19,10 @@ clap_complete = { version = "4.3.2", optional = true }
 
 [dev-dependencies]
 criterion = "0.5.1"
+image = { version = "0.24.6", default-features = false, features = [
+  "png",
+  "jpeg",
+] }
 
 [features]
 cli = ["clap", "clap_complete"]
