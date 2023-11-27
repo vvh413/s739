@@ -74,10 +74,12 @@ Options:
           Input file
   -o, --output <OUTPUT>
           Output file
-      --png-compression <PNG_COMPRESSION>
+      --png-compression <COMPRESSION>
           PNG compression type [default: fast] [possible values: default, fast, best]
-      --png-filter <PNG_FILTER>
+      --png-filter <FILTER>
           PNG filter type [default: adaptive] [possible values: no, sub, up, avg, paeth, adaptive]
+      --jpeg-compress-profile <COMPRESS_PROFILE>
+          MozJPEG compression profile [default: max] [possible values: max, fastest]
   -t, --text <TEXT>
           Encode plain text data
   -f, --file <FILE>

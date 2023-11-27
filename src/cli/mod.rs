@@ -1,11 +1,10 @@
+mod jpeg;
 mod png;
 
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand, ValueHint};
 use clap_complete::{Generator, Shell};
-
-use self::png::{CompressionType, FilterType};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -67,11 +66,11 @@ impl From<ImageOptions> for s739::options::ImageOptions {
 #[derive(Args, Debug, Clone, Default)]
 pub struct PngOptions {
   /// PNG compression type
-  #[arg(long, default_value_t = CompressionType::Fast)]
-  pub compression: CompressionType,
+  #[arg(long = "png-compression", default_value_t = png::CompressionType::Fast)]
+  pub compression: png::CompressionType,
   /// PNG filter type
-  #[arg(long, default_value_t = FilterType::Adaptive)]
-  pub filter: FilterType,
+  #[arg(long = "png-filter", default_value_t = png::FilterType::Adaptive)]
+  pub filter: png::FilterType,
 }
 
 impl From<PngOptions> for s739::options::PngOptions {
@@ -84,11 +83,17 @@ impl From<PngOptions> for s739::options::PngOptions {
 }
 
 #[derive(Args, Debug, Clone, Default)]
-pub struct JpegOptions {}
+pub struct JpegOptions {
+  /// MozJPEG compression profile
+  #[arg(long = "jpeg-compress-profile", default_value_t = jpeg::CompressProfile::Max)]
+  compress_profile: jpeg::CompressProfile,
+}
 
 impl From<JpegOptions> for s739::options::JpegOptions {
-  fn from(_value: JpegOptions) -> Self {
-    s739::options::JpegOptions {}
+  fn from(value: JpegOptions) -> Self {
+    s739::options::JpegOptions {
+      compress_profile: value.compress_profile.into(),
+    }
   }
 }
 

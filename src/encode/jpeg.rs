@@ -2,9 +2,9 @@ use anyhow::{ensure, Result};
 use bitvec::slice::BitSlice;
 use bitvec::view::BitView;
 use mozjpeg_sys::{
-  boolean, jpeg_copy_critical_parameters, jpeg_decompress_struct, jpeg_destroy_compress, jpeg_destroy_decompress,
-  jpeg_finish_compress, jpeg_finish_decompress, jpeg_read_coefficients, jpeg_read_header, jpeg_write_coefficients,
-  jvirt_barray_control,
+  boolean, jpeg_c_set_int_param, jpeg_copy_critical_parameters, jpeg_decompress_struct, jpeg_destroy_compress,
+  jpeg_destroy_decompress, jpeg_finish_compress, jpeg_finish_decompress, jpeg_read_coefficients, jpeg_read_header,
+  jpeg_write_coefficients, jvirt_barray_control, J_INT_PARAM,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -80,6 +80,7 @@ impl Encoder for JpegEncoder {
 
     Ok(())
   }
+
   fn write_data(&mut self, data: &[u8]) -> Result<()> {
     ensure!((data.len() << 3) != 0, "data is empty or has invalid size");
     let max_step = (self.total_size - 32) / (data.len() << 3);
@@ -91,12 +92,17 @@ impl Encoder for JpegEncoder {
     Ok(())
   }
 
-  fn encode_image(&mut self, _image_opts: ImageOptions) -> Result<Vec<u8>> {
+  fn encode_image(&mut self, image_opts: ImageOptions) -> Result<Vec<u8>> {
     let buffer: Vec<u8> = unsafe {
       let buffer_ptr: *mut *mut u8 = &mut [0u8; 0].as_mut_ptr();
       let buffer_size: *mut libc::c_ulong = &mut 0;
       let mut dstinfo = compress(buffer_ptr, buffer_size)?;
 
+      jpeg_c_set_int_param(
+        &mut dstinfo,
+        J_INT_PARAM::JINT_COMPRESS_PROFILE,
+        image_opts.jpeg.compress_profile as i32,
+      );
       jpeg_copy_critical_parameters(&self.cinfo, &mut dstinfo);
 
       jpeg_write_coefficients(&mut dstinfo, self.coefs_ptr);

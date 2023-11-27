@@ -12,5 +12,15 @@ pub struct PngOptions {
   pub filter: png::FilterType,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct JpegOptions {}
+#[derive(Debug, Clone)]
+pub struct JpegOptions {
+  pub compress_profile: mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE,
+}
+
+impl Default for JpegOptions {
+  fn default() -> Self {
+    Self {
+      compress_profile: mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE::JCP_MAX_COMPRESSION,
+    }
+  }
+}
