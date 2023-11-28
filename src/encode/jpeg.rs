@@ -2,16 +2,16 @@ use anyhow::{ensure, Result};
 use bitvec::slice::BitSlice;
 use bitvec::view::BitView;
 use mozjpeg_sys::{
-  boolean, jpeg_c_set_int_param, jpeg_copy_critical_parameters, jpeg_decompress_struct, jpeg_destroy_compress,
-  jpeg_destroy_decompress, jpeg_finish_compress, jpeg_finish_decompress, jpeg_read_coefficients, jpeg_read_header,
-  jpeg_write_coefficients, jvirt_barray_control, J_INT_PARAM,
+  boolean, jpeg_copy_critical_parameters, jpeg_decompress_struct, jpeg_destroy_compress, jpeg_destroy_decompress,
+  jpeg_finish_compress, jpeg_finish_decompress, jpeg_read_coefficients, jpeg_read_header, jpeg_write_coefficients,
+  jvirt_barray_control,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
+use crate::jpeg_utils;
 use crate::options::ImageOptions;
-use crate::utils::{compress, decompress, get_blocks, get_total_size};
 
 use super::Encoder;
 
@@ -26,12 +26,12 @@ pub struct JpegEncoder {
 impl JpegEncoder {
   pub fn new(image_buffer: &Vec<u8>, key: Option<String>) -> Result<Self> {
     let (cinfo, coefs_ptr, total_size, blocks) = unsafe {
-      let mut cinfo = decompress(image_buffer)?;
+      let mut cinfo = jpeg_utils::decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
 
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let total_size = get_total_size(&cinfo);
-      let blocks = get_blocks(&mut cinfo, coefs_ptr);
+      let total_size = jpeg_utils::get_total_size(&cinfo);
+      let blocks = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr);
 
       (cinfo, coefs_ptr, total_size, blocks)
     };
@@ -96,13 +96,9 @@ impl Encoder for JpegEncoder {
     let buffer: Vec<u8> = unsafe {
       let buffer_ptr: *mut *mut u8 = &mut [0u8; 0].as_mut_ptr();
       let buffer_size: *mut libc::c_ulong = &mut 0;
-      let mut dstinfo = compress(buffer_ptr, buffer_size)?;
+      let mut dstinfo = jpeg_utils::compress(buffer_ptr, buffer_size)?;
 
-      jpeg_c_set_int_param(
-        &mut dstinfo,
-        J_INT_PARAM::JINT_COMPRESS_PROFILE,
-        image_opts.jpeg.compress_profile as i32,
-      );
+      jpeg_utils::set_options(&mut dstinfo, image_opts.jpeg);
       jpeg_copy_critical_parameters(&self.cinfo, &mut dstinfo);
 
       jpeg_write_coefficients(&mut dstinfo, self.coefs_ptr);

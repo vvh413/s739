@@ -1,8 +1,10 @@
 use anyhow::Result;
 use mozjpeg_sys::{
-  jpeg_compress_struct, jpeg_create_compress, jpeg_create_decompress, jpeg_decompress_struct, jpeg_error_mgr,
-  jpeg_mem_dest, jpeg_mem_src, jpeg_std_error, jvirt_barray_control,
+  jpeg_c_set_int_param, jpeg_compress_struct, jpeg_create_compress, jpeg_create_decompress, jpeg_decompress_struct,
+  jpeg_error_mgr, jpeg_mem_dest, jpeg_mem_src, jpeg_std_error, jvirt_barray_control, J_INT_PARAM,
 };
+
+use crate::options::JpegOptions;
 
 pub unsafe fn decompress(buffer: &Vec<u8>) -> Result<jpeg_decompress_struct> {
   let mut err: jpeg_error_mgr = std::mem::zeroed();
@@ -59,4 +61,12 @@ pub unsafe fn get_blocks(
     }
   }
   result
+}
+
+pub unsafe fn set_options(cinfo: &mut jpeg_compress_struct, jpeg_options: JpegOptions) {
+  jpeg_c_set_int_param(
+    cinfo,
+    J_INT_PARAM::JINT_COMPRESS_PROFILE,
+    jpeg_options.compress_profile as i32,
+  );
 }
