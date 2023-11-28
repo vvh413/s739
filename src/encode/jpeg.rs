@@ -30,8 +30,7 @@ impl JpegEncoder {
       jpeg_read_header(&mut cinfo, true as boolean);
 
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let total_size = jpeg_utils::get_total_size(&cinfo);
-      let blocks = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr);
+      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr);
 
       (cinfo, coefs_ptr, total_size, blocks)
     };

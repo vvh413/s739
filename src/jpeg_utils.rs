@@ -28,24 +28,17 @@ pub unsafe fn compress(buffer_ptr: *mut *mut u8, buffer_size: *mut libc::c_ulong
   Ok(cinfo)
 }
 
-pub unsafe fn get_total_size(cinfo: &jpeg_decompress_struct) -> usize {
-  let mut size = 0;
-  for comp in 0..cinfo.num_components as isize {
-    let comp_info = cinfo.comp_info.offset(comp);
-    size += (*comp_info).height_in_blocks * (*comp_info).width_in_blocks * 64;
-  }
-  size as usize
-}
-
 pub unsafe fn get_blocks(
   cinfo: &mut jpeg_decompress_struct,
   coefs_ptr: *mut *mut jvirt_barray_control,
-) -> Vec<(*mut [i16; 64], u32)> {
+) -> (Vec<(*mut [i16; 64], u32)>, usize) {
   let mut result: Vec<(*mut [i16; 64], u32)> = Vec::new();
+  let mut size: u32 = 0;
   let mut buffer;
 
   for comp in 0..cinfo.num_components as isize {
     let comp_info = cinfo.comp_info.offset(comp);
+    size += (*comp_info).height_in_blocks * (*comp_info).width_in_blocks * 64;
     for blk_y in (0..(*comp_info).height_in_blocks).step_by((*cinfo.comp_info).v_samp_factor as usize) {
       buffer = (*cinfo.common.mem).access_virt_barray.unwrap()(
         &mut cinfo.common,
@@ -60,7 +53,7 @@ pub unsafe fn get_blocks(
       }
     }
   }
-  result
+  (result, size as usize)
 }
 
 pub unsafe fn set_options(cinfo: &mut jpeg_compress_struct, jpeg_options: JpegOptions) {
