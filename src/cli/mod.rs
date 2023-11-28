@@ -17,10 +17,8 @@ pub struct Cli {
 pub enum Command {
   /// Encode data to image
   Encode(EncodeArgs),
-
   /// Decode data from image
   Decode(DecodeArgs),
-
   /// Generate shell completions
   Generate { shell: Shell },
 }
@@ -30,17 +28,13 @@ pub struct EncodeArgs {
   /// Input file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub input: PathBuf,
-
   /// Output file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub output: PathBuf,
-
   #[command(flatten)]
   pub image_opts: ImageOptions,
-
   #[command(flatten)]
   pub data: Data,
-
   /// Secret key
   #[arg(short, long, value_hint = ValueHint::Other)]
   pub key: Option<String>,
@@ -103,11 +97,9 @@ pub struct Data {
   /// Encode plain text data
   #[arg(short, long, value_hint = ValueHint::Other)]
   pub text: Option<String>,
-
   /// Encode file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub file: Option<PathBuf>,
-
   /// Read data from stdin
   #[arg(short, long)]
   pub stdin: bool,
@@ -118,11 +110,9 @@ pub struct DecodeArgs {
   /// Input file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub input: PathBuf,
-
   /// Write data to file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub file: Option<PathBuf>,
-
   /// Secret key
   #[arg(short, long, value_hint = ValueHint::Other)]
   pub key: Option<String>,
