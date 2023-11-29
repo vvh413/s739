@@ -24,13 +24,13 @@ pub struct JpegEncoder {
 }
 
 impl JpegEncoder {
-  pub fn new(image_buffer: &Vec<u8>, key: Option<String>) -> Result<Self> {
+  pub fn new(image_buffer: &Vec<u8>, key: Option<String>, jpeg_comp: Option<u8>) -> Result<Self> {
     let (cinfo, coefs_ptr, total_size, blocks) = unsafe {
       let mut cinfo = jpeg_utils::decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
 
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr);
+      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr, jpeg_comp)?;
 
       (cinfo, coefs_ptr, total_size, blocks)
     };
@@ -95,7 +95,7 @@ impl Encoder for JpegEncoder {
     let buffer: Vec<u8> = unsafe {
       let buffer_ptr: *mut *mut u8 = &mut [0u8; 0].as_mut_ptr();
       let buffer_size: *mut libc::c_ulong = &mut 0;
-      let mut dstinfo = jpeg_utils::compress(buffer_ptr, buffer_size)?;
+      let mut dstinfo = jpeg_utils::compress(buffer_ptr, buffer_size);
 
       jpeg_utils::set_options(&mut dstinfo, image_opts.jpeg);
       jpeg_copy_critical_parameters(&self.cinfo, &mut dstinfo);

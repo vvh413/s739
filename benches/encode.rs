@@ -22,7 +22,7 @@ fn encode(c: &mut criterion::Criterion) {
         .unwrap();
       let data = vec![3u8; size];
       b.iter(|| {
-        let mut encoder = encode::jpeg::JpegEncoder::new(&image_buffer, None).unwrap();
+        let mut encoder = encode::jpeg::JpegEncoder::new(&image_buffer, None, None).unwrap();
         encoder.write_data(&data).unwrap();
         encoder.encode_image(s739::options::ImageOptions::default())
       })

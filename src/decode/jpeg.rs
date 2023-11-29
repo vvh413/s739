@@ -20,12 +20,12 @@ pub struct JpegDecoder {
 }
 
 impl JpegDecoder {
-  pub fn new(image_buffer: &Vec<u8>, key: Option<String>) -> Result<Self> {
+  pub fn new(image_buffer: &Vec<u8>, key: Option<String>, jpeg_comp: Option<u8>) -> Result<Self> {
     let (cinfo, total_size, blocks) = unsafe {
       let mut cinfo = jpeg_utils::decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr);
+      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr, jpeg_comp)?;
 
       (cinfo, total_size, blocks)
     };

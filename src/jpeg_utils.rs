@@ -1,10 +1,12 @@
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use mozjpeg_sys::{
   jpeg_c_set_int_param, jpeg_compress_struct, jpeg_create_compress, jpeg_create_decompress, jpeg_decompress_struct,
   jpeg_error_mgr, jpeg_mem_dest, jpeg_mem_src, jpeg_std_error, jvirt_barray_control, J_INT_PARAM,
 };
 
 use crate::options::JpegOptions;
+
+type Blocks = Vec<(*mut [i16; 64], u32)>;
 
 pub unsafe fn decompress(buffer: &Vec<u8>) -> Result<jpeg_decompress_struct> {
   let mut err: jpeg_error_mgr = std::mem::zeroed();
@@ -17,7 +19,7 @@ pub unsafe fn decompress(buffer: &Vec<u8>) -> Result<jpeg_decompress_struct> {
   Ok(cinfo)
 }
 
-pub unsafe fn compress(buffer_ptr: *mut *mut u8, buffer_size: *mut libc::c_ulong) -> Result<jpeg_compress_struct> {
+pub unsafe fn compress(buffer_ptr: *mut *mut u8, buffer_size: *mut libc::c_ulong) -> jpeg_compress_struct {
   let mut err: jpeg_error_mgr = std::mem::zeroed();
   let mut cinfo: jpeg_compress_struct = std::mem::zeroed();
   cinfo.common.err = jpeg_std_error(&mut err);
@@ -25,18 +27,31 @@ pub unsafe fn compress(buffer_ptr: *mut *mut u8, buffer_size: *mut libc::c_ulong
 
   jpeg_mem_dest(&mut cinfo, buffer_ptr, buffer_size);
 
-  Ok(cinfo)
+  cinfo
 }
 
 pub unsafe fn get_blocks(
   cinfo: &mut jpeg_decompress_struct,
   coefs_ptr: *mut *mut jvirt_barray_control,
-) -> (Vec<(*mut [i16; 64], u32)>, usize) {
+  comp: Option<u8>,
+) -> Result<(Blocks, usize)> {
   let mut result: Vec<(*mut [i16; 64], u32)> = Vec::new();
   let mut size: u32 = 0;
   let mut buffer;
 
-  for comp in 0..cinfo.num_components as isize {
+  let range = match comp {
+    Some(comp) => {
+      ensure!(
+        comp < cinfo.num_components as u8,
+        "JPEG component #{comp} doesn't exits"
+      );
+      let comp = comp as isize;
+      comp..comp + 1
+    }
+    None => 0..cinfo.num_components as isize,
+  };
+
+  for comp in range {
     let comp_info = cinfo.comp_info.offset(comp);
     size += (*comp_info).height_in_blocks * (*comp_info).width_in_blocks * 64;
     for blk_y in (0..(*comp_info).height_in_blocks).step_by((*cinfo.comp_info).v_samp_factor as usize) {
@@ -53,7 +68,7 @@ pub unsafe fn get_blocks(
       }
     }
   }
-  (result, size as usize)
+  Ok((result, size as usize))
 }
 
 pub unsafe fn set_options(cinfo: &mut jpeg_compress_struct, jpeg_options: JpegOptions) {

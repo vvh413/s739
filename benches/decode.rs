@@ -23,11 +23,11 @@ fn decode(c: &mut criterion::Criterion) {
         .encode(image.as_bytes(), image.width(), image.height(), image.color())
         .unwrap();
       let data = vec![3u8; size];
-      let mut encoder = encode::jpeg::JpegEncoder::new(&image_buffer, None).unwrap();
+      let mut encoder = encode::jpeg::JpegEncoder::new(&image_buffer, None, None).unwrap();
       encoder.write_data(&data).unwrap();
       let image_buffer = encoder.encode_image(s739::options::ImageOptions::default()).unwrap();
       b.iter(|| {
-        let mut decoder = decode::jpeg::JpegDecoder::new(&image_buffer, None).unwrap();
+        let mut decoder = decode::jpeg::JpegDecoder::new(&image_buffer, None, None).unwrap();
         decoder.read_data()
       })
     });

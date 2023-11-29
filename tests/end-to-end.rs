@@ -10,13 +10,13 @@ fn e2e(ext: &str) -> Result<()> {
 
   println!("encoding: {ext}");
   image::DynamicImage::ImageRgb8(image::ImageBuffer::new(127, 127)).save(in_path.clone())?;
-  let mut encoder = new_encoder(in_path.into(), None)?;
+  let mut encoder = new_encoder(in_path.into(), None, None)?;
   encoder.write_data(&data)?;
   let buffer = encoder.encode_image(ImageOptions::default())?;
   std::fs::write(out_path.clone(), buffer)?;
 
   println!("decoding: {ext}");
-  let mut decoder = new_decoder(out_path.into(), None)?;
+  let mut decoder = new_decoder(out_path.into(), None, None)?;
   let decoded_data = decoder.read_data()?;
   println!("done: {ext}");
 

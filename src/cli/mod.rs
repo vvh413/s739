@@ -38,14 +38,17 @@ pub struct EncodeArgs {
   /// Secret key
   #[arg(short, long, value_hint = ValueHint::Other)]
   pub key: Option<String>,
+  /// JPEG component index
+  #[arg(long)]
+  pub jpeg_comp: Option<u8>,
 }
 
 #[derive(Args, Debug, Clone, Default)]
 pub struct ImageOptions {
   #[command(flatten)]
-  pub png: PngOptions,
+  png: PngOptions,
   #[command(flatten)]
-  pub jpeg: JpegOptions,
+  jpeg: JpegOptions,
 }
 
 impl From<ImageOptions> for s739::options::ImageOptions {
@@ -61,10 +64,10 @@ impl From<ImageOptions> for s739::options::ImageOptions {
 pub struct PngOptions {
   /// PNG compression type
   #[arg(long = "png-compression", default_value_t = png::CompressionType::Fast)]
-  pub compression: png::CompressionType,
+  compression: png::CompressionType,
   /// PNG filter type
   #[arg(long = "png-filter", default_value_t = png::FilterType::Adaptive)]
-  pub filter: png::FilterType,
+  filter: png::FilterType,
 }
 
 impl From<PngOptions> for s739::options::PngOptions {
@@ -116,6 +119,9 @@ pub struct DecodeArgs {
   /// Secret key
   #[arg(short, long, value_hint = ValueHint::Other)]
   pub key: Option<String>,
+  /// JPEG component index
+  #[arg(long)]
+  pub jpeg_comp: Option<u8>,
 }
 
 pub fn print_completions<G: Generator>(gen: G, cmd: &mut clap::Command) {
