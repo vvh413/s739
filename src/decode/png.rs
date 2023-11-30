@@ -5,18 +5,22 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
+use crate::options::ExtraArgs;
+
 use super::Decoder;
 
 pub struct PngDecoder {
   image: DynamicImage,
   rng: ChaCha20Rng,
+  depth: usize,
 }
 
 impl PngDecoder {
-  pub fn new(image: DynamicImage, key: Option<String>) -> Result<Self> {
+  pub fn new(image: DynamicImage, extra_args: ExtraArgs) -> Result<Self> {
     Ok(Self {
       image,
-      rng: ChaCha20Rng::from_seed(Seeder::from(key).make_seed()),
+      rng: ChaCha20Rng::from_seed(Seeder::from(extra_args.key).make_seed()),
+      depth: extra_args.depth,
     })
   }
 }
@@ -39,7 +43,7 @@ impl Decoder for PngDecoder {
         Some(pixel) => pixel,
         None => bail!("read: image ended, but data not"),
       };
-      bit.set((pixel & 0x1) == 1);
+      bit.set((pixel >> self.depth & 1) == 1);
     }
     Ok(())
   }

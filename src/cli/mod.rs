@@ -24,6 +24,29 @@ pub enum Command {
 }
 
 #[derive(Args, Debug, Clone)]
+pub struct ExtraArgs {
+  /// Secret key
+  #[arg(short, long, value_hint = ValueHint::Other)]
+  key: Option<String>,
+  /// JPEG component index
+  #[arg(long)]
+  jpeg_comp: Option<u8>,
+  /// Depth (bit storing data)
+  #[arg(long, default_value_t = 0, value_parser = 0..=7)]
+  depth: i64,
+}
+
+impl From<ExtraArgs> for s739::options::ExtraArgs {
+  fn from(value: ExtraArgs) -> Self {
+    Self {
+      key: value.key,
+      jpeg_comp: value.jpeg_comp,
+      depth: value.depth as usize,
+    }
+  }
+}
+
+#[derive(Args, Debug, Clone)]
 pub struct EncodeArgs {
   /// Input file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
@@ -35,12 +58,8 @@ pub struct EncodeArgs {
   pub image_opts: ImageOptions,
   #[command(flatten)]
   pub data: Data,
-  /// Secret key
-  #[arg(short, long, value_hint = ValueHint::Other)]
-  pub key: Option<String>,
-  /// JPEG component index
-  #[arg(long)]
-  pub jpeg_comp: Option<u8>,
+  #[command(flatten)]
+  pub extra_args: ExtraArgs,
 }
 
 #[derive(Args, Debug, Clone, Default)]
@@ -116,12 +135,8 @@ pub struct DecodeArgs {
   /// Write data to file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub file: Option<PathBuf>,
-  /// Secret key
-  #[arg(short, long, value_hint = ValueHint::Other)]
-  pub key: Option<String>,
-  /// JPEG component index
-  #[arg(long)]
-  pub jpeg_comp: Option<u8>,
+  #[command(flatten)]
+  pub extra_args: ExtraArgs,
 }
 
 pub fn print_completions<G: Generator>(gen: G, cmd: &mut clap::Command) {

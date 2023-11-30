@@ -3,7 +3,7 @@ pub mod png;
 
 use std::path::PathBuf;
 
-use crate::options::ImageOptions;
+use crate::options::{ExtraArgs, ImageOptions};
 use anyhow::{bail, Result};
 use bitvec::slice::BitSlice;
 
@@ -16,11 +16,14 @@ pub trait Encoder {
   fn encode_image(&mut self, image_opts: ImageOptions) -> Result<Vec<u8>>;
 }
 
-pub fn new_encoder(input: PathBuf, key: Option<String>, jpeg_comp: Option<u8>) -> Result<Box<dyn Encoder>> {
+pub fn new_encoder(input: PathBuf, extra_args: ExtraArgs) -> Result<Box<dyn Encoder>> {
   let image_buf = std::fs::read(input)?;
   match image::guess_format(&image_buf)? {
-    image::ImageFormat::Png => Ok(Box::new(PngEncoder::new(image::load_from_memory(&image_buf)?, key)?)),
-    image::ImageFormat::Jpeg => Ok(Box::new(JpegEncoder::new(&image_buf, key, jpeg_comp)?)),
+    image::ImageFormat::Png => Ok(Box::new(PngEncoder::new(
+      image::load_from_memory(&image_buf)?,
+      extra_args,
+    )?)),
+    image::ImageFormat::Jpeg => Ok(Box::new(JpegEncoder::new(&image_buf, extra_args)?)),
     _ => bail!("invalid image format"),
   }
 }

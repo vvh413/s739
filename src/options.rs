@@ -24,3 +24,10 @@ impl Default for JpegOptions {
     }
   }
 }
+
+#[derive(Default)]
+pub struct ExtraArgs {
+  pub key: Option<String>,
+  pub jpeg_comp: Option<u8>,
+  pub depth: usize,
+}

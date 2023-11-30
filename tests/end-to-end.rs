@@ -1,7 +1,7 @@
 use anyhow::Result;
 use s739::decode::new_decoder;
 use s739::encode::new_encoder;
-use s739::options::ImageOptions;
+use s739::options::{ExtraArgs, ImageOptions};
 
 fn e2e(ext: &str) -> Result<()> {
   let in_path = format!("/tmp/s739_in.{ext}");
@@ -10,13 +10,13 @@ fn e2e(ext: &str) -> Result<()> {
 
   println!("encoding: {ext}");
   image::DynamicImage::ImageRgb8(image::ImageBuffer::new(127, 127)).save(in_path.clone())?;
-  let mut encoder = new_encoder(in_path.into(), None, None)?;
+  let mut encoder = new_encoder(in_path.into(), ExtraArgs::default())?;
   encoder.write_data(&data)?;
   let buffer = encoder.encode_image(ImageOptions::default())?;
   std::fs::write(out_path.clone(), buffer)?;
 
   println!("decoding: {ext}");
-  let mut decoder = new_decoder(out_path.into(), None, None)?;
+  let mut decoder = new_decoder(out_path.into(), ExtraArgs::default())?;
   let decoded_data = decoder.read_data()?;
   println!("done: {ext}");
 

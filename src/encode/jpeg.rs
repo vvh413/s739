@@ -11,7 +11,7 @@ use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
 use crate::jpeg_utils;
-use crate::options::ImageOptions;
+use crate::options::{ExtraArgs, ImageOptions};
 
 use super::Encoder;
 
@@ -21,16 +21,17 @@ pub struct JpegEncoder {
   total_size: usize,
   blocks: Vec<(*mut [i16; 64], u32)>,
   rng: ChaCha20Rng,
+  depth: usize,
 }
 
 impl JpegEncoder {
-  pub fn new(image_buffer: &Vec<u8>, key: Option<String>, jpeg_comp: Option<u8>) -> Result<Self> {
+  pub fn new(image_buffer: &Vec<u8>, extra_args: ExtraArgs) -> Result<Self> {
     let (cinfo, coefs_ptr, total_size, blocks) = unsafe {
       let mut cinfo = jpeg_utils::decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
 
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr, jpeg_comp)?;
+      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr, extra_args.jpeg_comp)?;
 
       (cinfo, coefs_ptr, total_size, blocks)
     };
@@ -40,7 +41,8 @@ impl JpegEncoder {
       coefs_ptr,
       total_size,
       blocks,
-      rng: ChaCha20Rng::from_seed(Seeder::from(key).make_seed()),
+      rng: ChaCha20Rng::from_seed(Seeder::from(extra_args.key).make_seed()),
+      depth: extra_args.depth,
     })
   }
 }
@@ -51,6 +53,7 @@ impl Encoder for JpegEncoder {
     let mut seek = seek;
     let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     let mut data_iter = data.iter();
+    let mask = 0xfffeu16.rotate_left(self.depth as u32) as i16;
 
     for (block, width) in self.blocks.iter() {
       for blk_x in 0..*width {
@@ -69,7 +72,7 @@ impl Encoder for JpegEncoder {
               Some(bit) => bit,
               None => return Ok(()),
             };
-            *coef = (*coef & -2) | (if *bit { 1 } else { 0 });
+            *coef = (*coef & mask) | ((if *bit { 1 } else { 0 }) << self.depth);
 
             step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
           }
