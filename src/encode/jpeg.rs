@@ -57,25 +57,23 @@ impl Encoder for JpegEncoder {
 
     for (block, width) in self.blocks.iter() {
       for blk_x in 0..*width {
-        unsafe {
-          for coef in (*block.offset(blk_x as isize)).iter_mut() {
-            if seek > 0 {
-              seek -= 1;
-              continue;
-            }
-            if step > 0 {
-              step -= 1;
-              continue;
-            }
-
-            let bit = match data_iter.next() {
-              Some(bit) => bit,
-              None => return Ok(()),
-            };
-            *coef = (*coef & mask) | ((if *bit { 1 } else { 0 }) << self.extra.depth);
-
-            step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
+        for coef in unsafe { (*block.offset(blk_x as isize)).iter_mut() } {
+          if seek > 0 {
+            seek -= 1;
+            continue;
           }
+          if step > 0 {
+            step -= 1;
+            continue;
+          }
+
+          let bit = match data_iter.next() {
+            Some(bit) => bit,
+            None => return Ok(()),
+          };
+          *coef = (*coef & mask) | ((if *bit { 1 } else { 0 }) << self.extra.depth);
+
+          step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
         }
       }
     }
