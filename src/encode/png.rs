@@ -11,15 +11,15 @@ use super::Encoder;
 pub struct PngEncoder {
   pub image: DynamicImage,
   rng: ChaCha20Rng,
-  depth: usize,
+  extra: ExtraArgs,
 }
 
 impl PngEncoder {
-  pub fn new(image: DynamicImage, extra_args: ExtraArgs) -> Result<Self> {
+  pub fn new(image: DynamicImage, extra: ExtraArgs) -> Result<Self> {
     Ok(Self {
       image,
-      rng: ChaCha20Rng::from_seed(Seeder::from(extra_args.key).make_seed()),
-      depth: extra_args.depth,
+      rng: ChaCha20Rng::from_seed(Seeder::from(extra.key.clone()).make_seed()),
+      extra,
     })
   }
 }
@@ -39,7 +39,7 @@ impl Encoder for PngEncoder {
     for bit in data {
       let step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
       match image_iter.nth(step) {
-        Some(pixel) => pixel.view_bits_mut::<Lsb0>().set(self.depth, *bit),
+        Some(pixel) => pixel.view_bits_mut::<Lsb0>().set(self.extra.depth, *bit),
         None => bail!("write: image ended, but data not"),
       }
     }

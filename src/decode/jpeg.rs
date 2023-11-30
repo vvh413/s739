@@ -8,8 +8,8 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
-use crate::jpeg_utils;
 use crate::options::ExtraArgs;
+use crate::utils;
 
 use super::Decoder;
 
@@ -18,16 +18,16 @@ pub struct JpegDecoder {
   total_size: usize,
   blocks: Vec<(*mut [i16; 64], u32)>,
   rng: ChaCha20Rng,
-  depth: usize,
+  extra: ExtraArgs,
 }
 
 impl JpegDecoder {
-  pub fn new(image_buffer: &Vec<u8>, extra_args: ExtraArgs) -> Result<Self> {
+  pub fn new(image_buffer: &Vec<u8>, extra: ExtraArgs) -> Result<Self> {
     let (cinfo, total_size, blocks) = unsafe {
-      let mut cinfo = jpeg_utils::decompress(image_buffer)?;
+      let mut cinfo = utils::jpeg::decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr, extra_args.jpeg_comp)?;
+      let (blocks, total_size) = utils::jpeg::get_blocks(&mut cinfo, coefs_ptr, extra.jpeg_comp)?;
 
       (cinfo, total_size, blocks)
     };
@@ -36,8 +36,8 @@ impl JpegDecoder {
       cinfo,
       total_size,
       blocks,
-      rng: ChaCha20Rng::from_seed(Seeder::from(extra_args.key).make_seed()),
-      depth: extra_args.depth,
+      rng: ChaCha20Rng::from_seed(Seeder::from(extra.key.clone()).make_seed()),
+      extra,
     })
   }
 }
@@ -65,7 +65,7 @@ impl Decoder for JpegDecoder {
             Some(bit) => bit,
             None => return Ok(()),
           };
-          *bit = (*coef >> self.depth & 1) == 1;
+          *bit = (*coef >> self.extra.depth & 1) == 1;
 
           step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
         }

@@ -12,15 +12,15 @@ use super::Decoder;
 pub struct PngDecoder {
   image: DynamicImage,
   rng: ChaCha20Rng,
-  depth: usize,
+  extra: ExtraArgs,
 }
 
 impl PngDecoder {
-  pub fn new(image: DynamicImage, extra_args: ExtraArgs) -> Result<Self> {
+  pub fn new(image: DynamicImage, extra: ExtraArgs) -> Result<Self> {
     Ok(Self {
       image,
-      rng: ChaCha20Rng::from_seed(Seeder::from(extra_args.key).make_seed()),
-      depth: extra_args.depth,
+      rng: ChaCha20Rng::from_seed(Seeder::from(extra.key.clone()).make_seed()),
+      extra,
     })
   }
 }
@@ -43,7 +43,7 @@ impl Decoder for PngDecoder {
         Some(pixel) => pixel,
         None => bail!("read: image ended, but data not"),
       };
-      bit.set((pixel >> self.depth & 1) == 1);
+      bit.set((pixel >> self.extra.depth & 1) == 1);
     }
     Ok(())
   }

@@ -10,8 +10,8 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
-use crate::jpeg_utils;
 use crate::options::{ExtraArgs, ImageOptions};
+use crate::utils;
 
 use super::Encoder;
 
@@ -21,17 +21,17 @@ pub struct JpegEncoder {
   total_size: usize,
   blocks: Vec<(*mut [i16; 64], u32)>,
   rng: ChaCha20Rng,
-  depth: usize,
+  extra: ExtraArgs,
 }
 
 impl JpegEncoder {
-  pub fn new(image_buffer: &Vec<u8>, extra_args: ExtraArgs) -> Result<Self> {
+  pub fn new(image_buffer: &Vec<u8>, extra: ExtraArgs) -> Result<Self> {
     let (cinfo, coefs_ptr, total_size, blocks) = unsafe {
-      let mut cinfo = jpeg_utils::decompress(image_buffer)?;
+      let mut cinfo = utils::jpeg::decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
 
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let (blocks, total_size) = jpeg_utils::get_blocks(&mut cinfo, coefs_ptr, extra_args.jpeg_comp)?;
+      let (blocks, total_size) = utils::jpeg::get_blocks(&mut cinfo, coefs_ptr, extra.jpeg_comp)?;
 
       (cinfo, coefs_ptr, total_size, blocks)
     };
@@ -41,8 +41,8 @@ impl JpegEncoder {
       coefs_ptr,
       total_size,
       blocks,
-      rng: ChaCha20Rng::from_seed(Seeder::from(extra_args.key).make_seed()),
-      depth: extra_args.depth,
+      rng: ChaCha20Rng::from_seed(Seeder::from(extra.key.clone()).make_seed()),
+      extra,
     })
   }
 }
@@ -53,7 +53,7 @@ impl Encoder for JpegEncoder {
     let mut seek = seek;
     let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     let mut data_iter = data.iter();
-    let mask = 0xfffeu16.rotate_left(self.depth as u32) as i16;
+    let mask = 0xfffeu16.rotate_left(self.extra.depth as u32) as i16;
 
     for (block, width) in self.blocks.iter() {
       for blk_x in 0..*width {
@@ -72,7 +72,7 @@ impl Encoder for JpegEncoder {
               Some(bit) => bit,
               None => return Ok(()),
             };
-            *coef = (*coef & mask) | ((if *bit { 1 } else { 0 }) << self.depth);
+            *coef = (*coef & mask) | ((if *bit { 1 } else { 0 }) << self.extra.depth);
 
             step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
           }
@@ -98,9 +98,9 @@ impl Encoder for JpegEncoder {
     let buffer: Vec<u8> = unsafe {
       let buffer_ptr: *mut *mut u8 = &mut [0u8; 0].as_mut_ptr();
       let buffer_size: *mut libc::c_ulong = &mut 0;
-      let mut dstinfo = jpeg_utils::compress(buffer_ptr, buffer_size);
+      let mut dstinfo = utils::jpeg::compress(buffer_ptr, buffer_size);
 
-      jpeg_utils::set_options(&mut dstinfo, image_opts.jpeg);
+      utils::jpeg::set_options(&mut dstinfo, image_opts.jpeg);
       jpeg_copy_critical_parameters(&self.cinfo, &mut dstinfo);
 
       jpeg_write_coefficients(&mut dstinfo, self.coefs_ptr);
