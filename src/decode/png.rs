@@ -70,7 +70,12 @@ impl Decoder for PngDecoder {
 
     let total_size = self.image.width() * self.image.height() * self.image.color().channel_count() as u32 - 32;
     let max_step = total_size as usize / ((size << 3) / self.extra.lsbs + 1);
-    ensure!(max_step > 0, "invalid data size: {} vs {}", total_size, size << 3);
+    ensure!(
+      max_step > 0,
+      "invalid data size: {} vs {}",
+      total_size,
+      (size << 3) / self.extra.lsbs + 1
+    );
 
     let mut data = vec![0u8; size];
     self.read(data.view_bits_mut(), 32, max_step)?;

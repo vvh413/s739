@@ -107,7 +107,7 @@ impl Encoder for JpegEncoder {
       max_step > 0,
       "too much data: {} vs {}",
       self.total_size - 32,
-      data.len() << 3
+      (data.len() << 3) / self.extra.lsbs + 1
     );
 
     self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;

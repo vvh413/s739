@@ -100,7 +100,7 @@ impl Decoder for JpegDecoder {
       max_step > 0,
       "invalid data size: {} vs {}",
       self.total_size - 32,
-      size << 3
+      (size << 3) / self.extra.lsbs + 1
     );
 
     let mut data = vec![0u8; size];
