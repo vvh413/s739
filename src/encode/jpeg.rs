@@ -26,6 +26,12 @@ pub struct JpegEncoder {
 
 impl JpegEncoder {
   pub fn new(image_buffer: &Vec<u8>, extra: ExtraArgs) -> Result<Self> {
+    ensure!(
+      extra.depth + extra.lsbs <= 8,
+      "invalid depth and LSBs: {} + {} > 8",
+      extra.depth,
+      extra.lsbs
+    );
     let (cinfo, coefs_ptr, total_size, blocks) = unsafe {
       let mut cinfo = utils::jpeg::decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
@@ -53,11 +59,11 @@ impl Encoder for JpegEncoder {
     let mut seek = seek;
     let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     let mut data_iter = data.iter();
-    let mask = 0xfffeu16.rotate_left(self.extra.depth as u32) as i16;
+    let mask = (0xffffu16 << self.extra.lsbs).rotate_left(self.extra.depth as u32) as i16;
 
     for (block, width) in self.blocks.iter() {
       for blk_x in 0..*width {
-        for coef in unsafe { (*block.offset(blk_x as isize)).iter_mut() } {
+        for (idx, coef) in unsafe { (*block.offset(blk_x as isize)).iter_mut() }.enumerate() {
           if seek > 0 {
             seek -= 1;
             continue;
@@ -66,12 +72,25 @@ impl Encoder for JpegEncoder {
             step -= 1;
             continue;
           }
+          if self.extra.adaptive && utils::jpeg::coef_blacklist(idx, *coef) {
+            continue;
+          }
 
-          let bit = match data_iter.next() {
-            Some(bit) => bit,
-            None => return Ok(()),
-          };
-          *coef = (*coef & mask) | ((if *bit { 1 } else { 0 }) << self.extra.depth);
+          let mut bits = 0;
+          for i in 0..self.extra.lsbs {
+            let bit = match data_iter.next() {
+              Some(bit) => bit,
+              None => {
+                if i == 0 {
+                  return Ok(());
+                } else {
+                  break;
+                }
+              }
+            };
+            bits = bits << 1 | (if *bit { 1 } else { 0 });
+          }
+          *coef = (*coef & mask) | (bits << self.extra.depth);
 
           step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
         }

@@ -78,3 +78,7 @@ pub unsafe fn set_options(cinfo: &mut jpeg_compress_struct, jpeg_options: JpegOp
     jpeg_options.compress_profile as i32,
   );
 }
+
+pub fn coef_blacklist(idx: usize, coef: i16) -> bool {
+  idx == 0 || coef == 0 || coef == 1
+}

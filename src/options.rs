@@ -25,9 +25,22 @@ impl Default for JpegOptions {
   }
 }
 
-#[derive(Default)]
 pub struct ExtraArgs {
   pub key: Option<String>,
   pub jpeg_comp: Option<u8>,
+  pub adaptive: bool,
   pub depth: usize,
+  pub lsbs: usize,
+}
+
+impl Default for ExtraArgs {
+  fn default() -> Self {
+    Self {
+      key: None,
+      jpeg_comp: None,
+      adaptive: false,
+      depth: 0,
+      lsbs: 1,
+    }
+  }
 }

@@ -12,7 +12,7 @@ use self::jpeg::JpegDecoder;
 use self::png::PngDecoder;
 
 pub trait Decoder {
-  fn read(&mut self, buf: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()>;
+  fn read(&mut self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()>;
   fn read_data(&mut self) -> Result<Vec<u8>>;
 }
 

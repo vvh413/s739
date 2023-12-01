@@ -23,6 +23,12 @@ pub struct JpegDecoder {
 
 impl JpegDecoder {
   pub fn new(image_buffer: &Vec<u8>, extra: ExtraArgs) -> Result<Self> {
+    ensure!(
+      extra.depth + extra.lsbs <= 8,
+      "invalid depth and LSBs: {} + {} > 8",
+      extra.depth,
+      extra.lsbs
+    );
     let (cinfo, total_size, blocks) = unsafe {
       let mut cinfo = utils::jpeg::decompress(image_buffer)?;
       jpeg_read_header(&mut cinfo, true as boolean);
@@ -51,7 +57,7 @@ impl Decoder for JpegDecoder {
 
     for (block, width) in self.blocks.iter() {
       for blk_x in 0..*width {
-        for coef in unsafe { *block.offset(blk_x as isize) }.iter() {
+        for (idx, coef) in unsafe { *block.offset(blk_x as isize) }.iter().enumerate() {
           if seek > 0 {
             seek -= 1;
             continue;
@@ -60,12 +66,19 @@ impl Decoder for JpegDecoder {
             step -= 1;
             continue;
           }
-
-          let mut bit = match data_iter.next() {
-            Some(bit) => bit,
-            None => return Ok(()),
-          };
-          *bit = (*coef >> self.extra.depth & 1) == 1;
+          if self.extra.adaptive && utils::jpeg::coef_blacklist(idx, *coef) {
+            continue;
+          }
+          let value = *coef as u16 >> self.extra.depth & !(0xffff << self.extra.lsbs);
+          let mut value = value.reverse_bits() >> (16 - self.extra.lsbs);
+          for _ in 0..self.extra.lsbs {
+            let mut bit = match data_iter.next() {
+              Some(bit) => bit,
+              None => return Ok(()),
+            };
+            *bit = (value & 1) == 1;
+            value >>= 1;
+          }
 
           step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
         }
