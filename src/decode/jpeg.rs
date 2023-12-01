@@ -96,7 +96,6 @@ impl Decoder for JpegDecoder {
     ensure!((size << 3) != 0, "no data found");
 
     let max_step = (self.total_size - 32) / ((size << 3) / self.extra.lsbs + 1);
-    ensure!(max_step > 0, "invalid data size");
     ensure!(
       max_step > 0,
       "invalid data size: {} vs {}",
