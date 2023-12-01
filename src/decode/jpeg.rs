@@ -66,7 +66,7 @@ impl Decoder for JpegDecoder {
             step -= 1;
             continue;
           }
-          if utils::jpeg::adaptive_chec(&self.extra, idx, *coef as usize) {
+          if utils::jpeg::adaptive_check(&self.extra, idx, *coef as usize) {
             continue;
           }
 

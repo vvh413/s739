@@ -79,6 +79,6 @@ pub unsafe fn set_options(cinfo: &mut jpeg_compress_struct, jpeg_options: JpegOp
   );
 }
 
-pub fn adaptive_chec(extra: &ExtraArgs, idx: usize, coef: usize) -> bool {
+pub fn adaptive_check(extra: &ExtraArgs, idx: usize, coef: usize) -> bool {
   extra.adaptive && (idx == 0 || coef == 0 || coef == extra.lsbs << extra.depth)
 }
