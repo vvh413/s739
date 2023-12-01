@@ -4,7 +4,7 @@ use mozjpeg_sys::{
   jpeg_error_mgr, jpeg_mem_dest, jpeg_mem_src, jpeg_std_error, jvirt_barray_control, J_INT_PARAM,
 };
 
-use crate::options::JpegOptions;
+use crate::options::{ExtraArgs, JpegOptions};
 
 type Blocks = Vec<(*mut [i16; 64], u32)>;
 
@@ -79,6 +79,6 @@ pub unsafe fn set_options(cinfo: &mut jpeg_compress_struct, jpeg_options: JpegOp
   );
 }
 
-pub fn coef_blacklist(idx: usize, coef: i16) -> bool {
-  idx == 0 || coef == 0 || coef == 1
+pub fn adaptive_chec(extra: &ExtraArgs, idx: usize, coef: usize) -> bool {
+  extra.adaptive && (idx == 0 || coef == 0 || coef == extra.lsbs << extra.depth)
 }

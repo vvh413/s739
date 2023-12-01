@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
 use mozjpeg_sys::{
   boolean, jpeg_decompress_struct, jpeg_destroy_decompress, jpeg_finish_decompress, jpeg_read_coefficients,
@@ -66,9 +66,10 @@ impl Decoder for JpegDecoder {
             step -= 1;
             continue;
           }
-          if self.extra.adaptive && utils::jpeg::coef_blacklist(idx, *coef) {
+          if utils::jpeg::adaptive_chec(&self.extra, idx, *coef as usize) {
             continue;
           }
+
           let value = *coef as u16 >> self.extra.depth & !(0xffff << self.extra.lsbs);
           let mut value = value.reverse_bits() >> (16 - self.extra.lsbs);
           for _ in 0..self.extra.lsbs {
@@ -84,7 +85,8 @@ impl Decoder for JpegDecoder {
         }
       }
     }
-    Ok(())
+
+    bail!("image ended but data not");
   }
 
   fn read_data(&mut self) -> Result<Vec<u8>> {
@@ -93,8 +95,14 @@ impl Decoder for JpegDecoder {
     let size: usize = size.load();
     ensure!((size << 3) != 0, "no data found");
 
-    let max_step = (self.total_size - 32) / (size << 3);
+    let max_step = (self.total_size - 32) / ((size << 3) / self.extra.lsbs + 1);
     ensure!(max_step > 0, "invalid data size");
+    ensure!(
+      max_step > 0,
+      "invalid data size: {} vs {}",
+      self.total_size - 32,
+      size << 3
+    );
 
     let mut data = vec![0u8; size];
     self.read(data.view_bits_mut(), 32, max_step)?;

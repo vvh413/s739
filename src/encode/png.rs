@@ -65,15 +65,15 @@ impl Encoder for PngEncoder {
       step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     }
 
-    Ok(())
+    bail!("image ended but data not");
   }
 
   fn write_data(&mut self, data: &[u8]) -> Result<()> {
     ensure!(!data.is_empty(), "data is empty");
-    let max_step = (self.image.width() * self.image.height() * self.image.color().channel_count() as u32 - 32) as usize
-      / (data.len() << 3);
+    let total_size = self.image.width() * self.image.height() * self.image.color().channel_count() as u32 - 32;
+    let max_step = total_size as usize / ((data.len() << 3) / self.extra.lsbs + 1);
+    ensure!(max_step > 0, "too much data: {} vs {}", total_size, data.len() << 3);
 
-    ensure!(max_step > 0, "invalid data size");
     self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
     self.write(data.view_bits(), 32, max_step)?;
 

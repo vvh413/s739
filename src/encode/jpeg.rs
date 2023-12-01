@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec::slice::BitSlice;
 use bitvec::view::BitView;
 use mozjpeg_sys::{
@@ -72,7 +72,7 @@ impl Encoder for JpegEncoder {
             step -= 1;
             continue;
           }
-          if self.extra.adaptive && utils::jpeg::coef_blacklist(idx, *coef) {
+          if utils::jpeg::adaptive_chec(&self.extra, idx, *coef as usize) {
             continue;
           }
 
@@ -97,13 +97,18 @@ impl Encoder for JpegEncoder {
       }
     }
 
-    Ok(())
+    bail!("image ended but data not");
   }
 
   fn write_data(&mut self, data: &[u8]) -> Result<()> {
     ensure!((data.len() << 3) != 0, "data is empty or has invalid size");
-    let max_step = (self.total_size - 32) / (data.len() << 3);
-    ensure!(max_step > 0, "too much data");
+    let max_step = (self.total_size - 32) / ((data.len() << 3) / self.extra.lsbs + 1);
+    ensure!(
+      max_step > 0,
+      "too much data: {} vs {}",
+      self.total_size - 32,
+      data.len() << 3
+    );
 
     self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
     self.write(data.view_bits(), 32, max_step)?;
