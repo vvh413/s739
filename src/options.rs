@@ -27,8 +27,8 @@ impl Default for JpegOptions {
 
 pub struct ExtraArgs {
   pub key: Option<String>,
+  pub selective: bool,
   pub jpeg_comp: Option<u8>,
-  pub adaptive: bool,
   pub depth: usize,
   pub lsbs: usize,
 }
@@ -38,7 +38,7 @@ impl Default for ExtraArgs {
     Self {
       key: None,
       jpeg_comp: None,
-      adaptive: false,
+      selective: false,
       depth: 0,
       lsbs: 1,
     }

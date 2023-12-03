@@ -28,28 +28,28 @@ pub struct ExtraArgs {
   /// Secret key
   #[arg(short, long, value_hint = ValueHint::Other)]
   key: Option<String>,
-  /// JPEG component index
-  #[arg(long)]
-  jpeg_comp: Option<u8>,
   /// Skip some DCT coefs for JPEG
   #[arg(long)]
-  adaptive: bool,
+  selective: bool,
   /// Depth (least bit to use)
   #[arg(long, default_value_t = 0, value_parser = 0..=7)]
   depth: i64,
   /// Number of bits to use
   #[arg(long, default_value_t = 1, value_parser = 1..=8)]
   lsbs: i64,
+  /// JPEG component index
+  #[arg(long)]
+  jpeg_comp: Option<u8>,
 }
 
 impl From<ExtraArgs> for s739::options::ExtraArgs {
   fn from(value: ExtraArgs) -> Self {
     Self {
       key: value.key,
-      jpeg_comp: value.jpeg_comp,
-      adaptive: value.adaptive,
+      selective: value.selective,
       depth: value.depth as usize,
       lsbs: value.lsbs as usize,
+      jpeg_comp: value.jpeg_comp,
     }
   }
 }
