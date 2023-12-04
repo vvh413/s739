@@ -24,6 +24,7 @@ image = { version = "0.24.6", default-features = false, features = [
   "png",
   "jpeg",
 ] }
+rand = "0.8.5"
 
 [features]
 cli = ["clap", "clap_complete"]

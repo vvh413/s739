@@ -84,18 +84,18 @@ impl Encoder for JpegEncoder {
           }
 
           let mut bits = 0;
-          for i in 0..self.extra.lsbs {
+          for i in (0..self.extra.lsbs).rev() {
             let bit = match data_iter.next() {
               Some(bit) => bit,
               None => {
-                if i == 0 {
+                if i == self.extra.lsbs {
                   return Ok(());
                 } else {
                   break;
                 }
               }
             };
-            bits = bits << 1 | (if *bit { 1 } else { 0 });
+            bits |= (if *bit { 1 } else { 0 }) << i;
           }
           *coef = (*coef & mask) | (bits << self.extra.depth);
 

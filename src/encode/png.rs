@@ -49,7 +49,10 @@ impl Encoder for PngEncoder {
     let rng = &mut self.rng;
     let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     let mut data_iter = data.iter();
-    let mask = (0xffu8 << self.extra.lsbs).rotate_left(self.extra.depth as u32);
+    let mask = 0xffu8
+      .checked_shl(self.extra.lsbs as u32)
+      .unwrap_or(0)
+      .rotate_left(self.extra.depth as u32);
 
     if seek > 0 {
       image_iter.nth(seek - 1);
@@ -57,18 +60,18 @@ impl Encoder for PngEncoder {
 
     while let Some(pixel) = image_iter.nth(step) {
       let mut bits = 0;
-      for i in 0..self.extra.lsbs {
+      for i in (0..self.extra.lsbs).rev() {
         let bit = match data_iter.next() {
           Some(bit) => bit,
           None => {
-            if i == 0 {
+            if i == self.extra.lsbs {
               return Ok(());
             } else {
               break;
             }
           }
         };
-        bits = bits << 1 | (if *bit { 1 } else { 0 });
+        bits |= (if *bit { 1 } else { 0 }) << i;
       }
       *pixel = (*pixel & mask) | (bits << self.extra.depth);
       step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };

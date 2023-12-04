@@ -56,7 +56,7 @@ impl Decoder for PngDecoder {
     }
 
     while let Some(pixel) = image_iter.nth(step) {
-      let value = *pixel >> self.extra.depth & !(0xff << self.extra.lsbs);
+      let value = *pixel >> self.extra.depth & !0xffu8.checked_shl(self.extra.lsbs as u32).unwrap_or(0);
       let mut value = value.reverse_bits() >> (8 - self.extra.lsbs);
       for _ in 0..self.extra.lsbs {
         let mut bit = match data_iter.next() {

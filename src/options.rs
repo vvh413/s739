@@ -20,7 +20,7 @@ pub struct JpegOptions {
   pub compress_profile: mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE,
 }
 
-#[derive(Derivative)]
+#[derive(Clone, Debug, Derivative)]
 #[derivative(Default)]
 pub struct ExtraArgs {
   pub key: Option<String>,
