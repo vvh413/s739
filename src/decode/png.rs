@@ -67,18 +67,10 @@ impl Decoder for PngDecoder {
       }
       step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     }
-    bail!("image ended but data not");
-  }
 
-  fn read_data(&mut self) -> Result<Vec<u8>> {
-    let size = bits![mut u8, Lsb0; 0u8; 32];
-    self.read(size, 0, 0)?;
-    let size: usize = size.load();
-    self.check_size(size)?;
-
-    let mut data = vec![0u8; size];
-    self.read(data.view_bits_mut(), 32, self.max_step(size))?;
-
-    Ok(data)
+    if data_iter.next().is_some() {
+      bail!("image ended but data not");
+    }
+    Ok(())
   }
 }

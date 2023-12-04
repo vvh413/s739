@@ -73,15 +73,9 @@ impl Encoder for PngEncoder {
       step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     }
 
-    bail!("image ended but data not");
-  }
-
-  fn write_data(&mut self, data: &[u8]) -> Result<()> {
-    self.check_size(data.len())?;
-
-    self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
-    self.write(data.view_bits(), 32, self.max_step(data.len()))?;
-
+    if data_iter.next().is_some() {
+      bail!("image ended but data not");
+    }
     Ok(())
   }
 

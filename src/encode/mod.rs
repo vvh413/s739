@@ -6,16 +6,25 @@ use std::path::PathBuf;
 use crate::options::{ExtraArgs, ImageOptions};
 use anyhow::{bail, ensure, Result};
 use bitvec::slice::BitSlice;
+use bitvec::view::BitView;
 
 use self::jpeg::JpegEncoder;
 use self::png::PngEncoder;
 
 pub trait Encoder {
   fn write(&mut self, data: &BitSlice<u8>, seek: usize, max_step: usize) -> Result<()>;
-  fn write_data(&mut self, data: &[u8]) -> Result<()>;
   fn encode_image(&mut self, image_opts: ImageOptions) -> Result<Vec<u8>>;
   fn total_size(&self) -> usize;
   fn extra(&self) -> &ExtraArgs;
+
+  fn write_data(&mut self, data: &[u8]) -> Result<()> {
+    self.check_size(data.len())?;
+
+    self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
+    self.write(data.view_bits(), 32, self.max_step(data.len()))?;
+
+    Ok(())
+  }
 
   fn check_size(&self, data_size: usize) -> Result<()> {
     ensure!((data_size << 3) != 0, "data is empty");

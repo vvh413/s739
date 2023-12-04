@@ -74,7 +74,7 @@ impl Decoder for JpegDecoder {
             step -= 1;
             continue;
           }
-          if utils::jpeg::adaptive_check(&self.extra, idx, *coef as usize) {
+          if utils::jpeg::selective_check(&self.extra, idx, *coef as usize) {
             continue;
           }
 
@@ -94,19 +94,10 @@ impl Decoder for JpegDecoder {
       }
     }
 
-    bail!("image ended but data not");
-  }
-
-  fn read_data(&mut self) -> Result<Vec<u8>> {
-    let size = bits![mut u8, Lsb0; 0u8; 32];
-    self.read(size, 0, 0)?;
-    let size: usize = size.load();
-    self.check_size(size)?;
-
-    let mut data = vec![0u8; size];
-    self.read(data.view_bits_mut(), 32, self.max_step(size))?;
-
-    Ok(data)
+    if data_iter.next().is_some() {
+      bail!("image ended but data not");
+    }
+    Ok(())
   }
 }
 

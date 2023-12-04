@@ -1,6 +1,5 @@
 use anyhow::{bail, ensure, Result};
 use bitvec::slice::BitSlice;
-use bitvec::view::BitView;
 use mozjpeg_sys::{
   boolean, jpeg_copy_critical_parameters, jpeg_decompress_struct, jpeg_destroy_compress, jpeg_destroy_decompress,
   jpeg_finish_compress, jpeg_finish_decompress, jpeg_read_coefficients, jpeg_read_header, jpeg_write_coefficients,
@@ -80,7 +79,7 @@ impl Encoder for JpegEncoder {
             step -= 1;
             continue;
           }
-          if utils::jpeg::adaptive_check(&self.extra, idx, *coef as usize) {
+          if utils::jpeg::selective_check(&self.extra, idx, *coef as usize) {
             continue;
           }
 
@@ -105,15 +104,9 @@ impl Encoder for JpegEncoder {
       }
     }
 
-    bail!("image ended but data not");
-  }
-
-  fn write_data(&mut self, data: &[u8]) -> Result<()> {
-    self.check_size(data.len())?;
-
-    self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
-    self.write(data.view_bits(), 32, self.max_step(data.len()))?;
-
+    if data_iter.next().is_some() {
+      bail!("image ended but data not");
+    }
     Ok(())
   }
 

@@ -4,7 +4,8 @@ pub mod png;
 use std::path::PathBuf;
 
 use anyhow::{bail, ensure, Result};
-use bitvec::slice::BitSlice;
+use bitvec::bits;
+use bitvec::prelude::*;
 
 use crate::options::ExtraArgs;
 
@@ -13,9 +14,21 @@ use self::png::PngDecoder;
 
 pub trait Decoder {
   fn read(&mut self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()>;
-  fn read_data(&mut self) -> Result<Vec<u8>>;
   fn total_size(&self) -> usize;
   fn extra(&self) -> &ExtraArgs;
+
+  fn read_data(&mut self) -> Result<Vec<u8>> {
+    let size = bits![mut u8, Lsb0; 0u8; 32];
+    self.read(size, 0, 0)?;
+    let size: usize = size.load();
+    self.check_size(size)?;
+
+    let (data_size, max_step) = self.data_size(size);
+    let mut data = vec![0u8; data_size];
+    self.read(data.view_bits_mut(), 32, max_step)?;
+
+    Ok(data)
+  }
 
   fn check_size(&self, data_size: usize) -> Result<()> {
     ensure!((data_size << 3) != 0, "no data found");
@@ -27,10 +40,11 @@ pub trait Decoder {
     Ok(())
   }
 
-  fn max_step(&self, data_size: usize) -> usize {
+  fn data_size(&self, data_size: usize) -> (usize, usize) {
+    let total_size = self.total_size() - 32;
     match self.extra().max_step {
-      Some(max_step) => max_step,
-      None => (self.total_size() - 32) / ((data_size << 3) / self.extra().lsbs + 1),
+      Some(max_step) => ((total_size / max_step) >> 3, max_step),
+      None => (data_size, total_size / ((data_size << 3) / self.extra().lsbs + 1)),
     }
   }
 }
