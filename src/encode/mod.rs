@@ -21,25 +21,30 @@ pub trait Encoder {
     self.check_size(data.len())?;
 
     self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
-    self.write(data.view_bits(), 32, self.max_step(data.len()))?;
+    self.write(data.view_bits(), 32, self.max_step(data.len())?)?;
 
     Ok(())
   }
 
   fn check_size(&self, data_size: usize) -> Result<()> {
-    ensure!((data_size << 3) != 0, "data is empty");
-    let total_size = self.total_size() - 32;
-    let data_size = (data_size << 3) / self.extra().lsbs + 1;
-    if data_size > total_size {
-      bail!("too much data: data {data_size} vs image {total_size}")
-    }
+    let total_size = self.total_size();
+    let data_size = data_size << 3;
+    ensure!(data_size != 0, "data is empty");
+    ensure!(
+      data_size <= total_size,
+      "too much data: data {data_size} vs image {total_size}",
+    );
     Ok(())
   }
 
-  fn max_step(&self, data_size: usize) -> usize {
+  fn max_step(&self, data_size: usize) -> Result<usize> {
+    let data_size = data_size << 3;
     match self.extra().max_step {
-      Some(max_step) => max_step,
-      None => (self.total_size() - 32) / ((data_size << 3) / self.extra().lsbs + 1),
+      Some(max_step) => {
+        ensure!(max_step * data_size < self.total_size(), "too big step");
+        Ok(max_step)
+      }
+      None => Ok(self.total_size() / data_size),
     }
   }
 }

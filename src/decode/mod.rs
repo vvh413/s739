@@ -21,9 +21,12 @@ pub trait Decoder {
     let size = bits![mut u8, Lsb0; 0u8; 32];
     self.read(size, 0, 0)?;
     let size: usize = size.load();
-    self.check_size(size)?;
 
-    let (data_size, max_step) = self.data_size(size);
+    if self.extra().max_step.is_none() {
+      self.check_size(size)?;
+    }
+
+    let (data_size, max_step) = self.data_size(size)?;
     let mut data = vec![0u8; data_size];
     self.read(data.view_bits_mut(), 32, max_step)?;
 
@@ -31,20 +34,24 @@ pub trait Decoder {
   }
 
   fn check_size(&self, data_size: usize) -> Result<()> {
-    ensure!((data_size << 3) != 0, "no data found");
-    let total_size = self.total_size() - 32;
-    let data_size = (data_size << 3) / self.extra().lsbs + 1;
-    if data_size > total_size {
-      bail!("invalid data size: data {data_size} vs image {total_size}")
-    }
+    let total_size = self.total_size();
+    let data_size = data_size << 3;
+    ensure!(data_size != 0, "no data found");
+    ensure!(
+      data_size <= self.total_size(),
+      "invalid data size: data {data_size} vs image {total_size}",
+    );
     Ok(())
   }
 
-  fn data_size(&self, data_size: usize) -> (usize, usize) {
-    let total_size = self.total_size() - 32;
+  fn data_size(&self, data_size: usize) -> Result<(usize, usize)> {
     match self.extra().max_step {
-      Some(max_step) => ((total_size / max_step) >> 3, max_step),
-      None => (data_size, total_size / ((data_size << 3) / self.extra().lsbs + 1)),
+      Some(max_step) => {
+        let data_size = (self.total_size() / max_step) >> 3;
+        ensure!(data_size > 0, "too big step");
+        Ok((data_size, max_step))
+      }
+      None => Ok((data_size, self.total_size() / (data_size << 3))),
     }
   }
 }

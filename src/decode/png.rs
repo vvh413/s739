@@ -33,7 +33,8 @@ impl PngDecoder {
 
 impl Decoder for PngDecoder {
   fn total_size(&self) -> usize {
-    self.image.width() as usize * self.image.height() as usize * self.image.color().channel_count() as usize
+    (self.image.width() as usize * self.image.height() as usize * self.image.color().channel_count() as usize - 32)
+      * self.extra().lsbs
   }
 
   fn extra(&self) -> &ExtraArgs {

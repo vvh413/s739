@@ -54,7 +54,7 @@ impl JpegEncoder {
 
 impl Encoder for JpegEncoder {
   fn total_size(&self) -> usize {
-    self.total_size
+    (self.total_size - 32) * self.extra().lsbs
   }
 
   fn extra(&self) -> &ExtraArgs {
