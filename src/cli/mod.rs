@@ -40,6 +40,9 @@ pub struct ExtraArgs {
   /// JPEG component index
   #[arg(long)]
   jpeg_comp: Option<u8>,
+  /// Overwrite calculated max step
+  #[arg(long)]
+  max_step: Option<usize>,
 }
 
 impl From<ExtraArgs> for s739::options::ExtraArgs {
@@ -50,6 +53,7 @@ impl From<ExtraArgs> for s739::options::ExtraArgs {
       depth: value.depth as usize,
       lsbs: value.lsbs as usize,
       jpeg_comp: value.jpeg_comp,
+      max_step: value.max_step,
     }
   }
 }

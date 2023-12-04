@@ -54,6 +54,14 @@ impl JpegEncoder {
 }
 
 impl Encoder for JpegEncoder {
+  fn total_size(&self) -> usize {
+    self.total_size
+  }
+
+  fn extra(&self) -> &ExtraArgs {
+    &self.extra
+  }
+
   fn write(&mut self, data: &BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
     let rng = &mut self.rng;
     let mut seek = seek;
@@ -101,17 +109,10 @@ impl Encoder for JpegEncoder {
   }
 
   fn write_data(&mut self, data: &[u8]) -> Result<()> {
-    ensure!((data.len() << 3) != 0, "data is empty or has invalid size");
-    let max_step = (self.total_size - 32) / ((data.len() << 3) / self.extra.lsbs + 1);
-    ensure!(
-      max_step > 0,
-      "too much data: {} vs {}",
-      self.total_size - 32,
-      (data.len() << 3) / self.extra.lsbs + 1
-    );
+    self.check_size(data.len())?;
 
     self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
-    self.write(data.view_bits(), 32, max_step)?;
+    self.write(data.view_bits(), 32, self.max_step(data.len()))?;
 
     Ok(())
   }

@@ -31,6 +31,14 @@ impl PngEncoder {
 }
 
 impl Encoder for PngEncoder {
+  fn total_size(&self) -> usize {
+    self.image.width() as usize * self.image.height() as usize * self.image.color().channel_count() as usize
+  }
+
+  fn extra(&self) -> &ExtraArgs {
+    &self.extra
+  }
+
   fn write(&mut self, data: &BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
     let mut image_iter = match &mut self.image {
       DynamicImage::ImageRgb8(img_buf) => img_buf.iter_mut(),
@@ -69,18 +77,10 @@ impl Encoder for PngEncoder {
   }
 
   fn write_data(&mut self, data: &[u8]) -> Result<()> {
-    ensure!(!data.is_empty(), "data is empty");
-    let total_size = self.image.width() * self.image.height() * self.image.color().channel_count() as u32 - 32;
-    let max_step = total_size as usize / ((data.len() << 3) / self.extra.lsbs + 1);
-    ensure!(
-      max_step > 0,
-      "too much data: {} vs {}",
-      total_size,
-      (data.len() << 3) / self.extra.lsbs + 1
-    );
+    self.check_size(data.len())?;
 
     self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
-    self.write(data.view_bits(), 32, max_step)?;
+    self.write(data.view_bits(), 32, self.max_step(data.len()))?;
 
     Ok(())
   }

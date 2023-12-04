@@ -1,3 +1,4 @@
+use derivative::Derivative;
 use image::codecs::png;
 
 #[derive(Debug, Clone, Default)]
@@ -12,35 +13,21 @@ pub struct PngOptions {
   pub filter: png::FilterType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Derivative)]
+#[derivative(Default)]
 pub struct JpegOptions {
+  #[derivative(Default(value = "mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE::JCP_MAX_COMPRESSION"))]
   pub compress_profile: mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE,
 }
 
-impl Default for JpegOptions {
-  fn default() -> Self {
-    Self {
-      compress_profile: mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE::JCP_MAX_COMPRESSION,
-    }
-  }
-}
-
+#[derive(Derivative)]
+#[derivative(Default)]
 pub struct ExtraArgs {
   pub key: Option<String>,
   pub selective: bool,
-  pub jpeg_comp: Option<u8>,
   pub depth: usize,
+  #[derivative(Default(value = "1"))]
   pub lsbs: usize,
-}
-
-impl Default for ExtraArgs {
-  fn default() -> Self {
-    Self {
-      key: None,
-      jpeg_comp: None,
-      selective: false,
-      depth: 0,
-      lsbs: 1,
-    }
-  }
+  pub jpeg_comp: Option<u8>,
+  pub max_step: Option<usize>,
 }

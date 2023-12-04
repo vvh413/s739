@@ -49,6 +49,14 @@ impl JpegDecoder {
 }
 
 impl Decoder for JpegDecoder {
+  fn total_size(&self) -> usize {
+    self.total_size
+  }
+
+  fn extra(&self) -> &ExtraArgs {
+    &self.extra
+  }
+
   fn read(&mut self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
     let rng = &mut self.rng;
     let mut seek = seek;
@@ -93,18 +101,10 @@ impl Decoder for JpegDecoder {
     let size = bits![mut u8, Lsb0; 0u8; 32];
     self.read(size, 0, 0)?;
     let size: usize = size.load();
-    ensure!((size << 3) != 0, "no data found");
-
-    let max_step = (self.total_size - 32) / ((size << 3) / self.extra.lsbs + 1);
-    ensure!(
-      max_step > 0,
-      "invalid data size: {} vs {}",
-      self.total_size - 32,
-      (size << 3) / self.extra.lsbs + 1
-    );
+    self.check_size(size)?;
 
     let mut data = vec![0u8; size];
-    self.read(data.view_bits_mut(), 32, max_step)?;
+    self.read(data.view_bits_mut(), 32, self.max_step(size))?;
 
     Ok(data)
   }

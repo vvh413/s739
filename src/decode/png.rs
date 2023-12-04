@@ -32,6 +32,14 @@ impl PngDecoder {
 }
 
 impl Decoder for PngDecoder {
+  fn total_size(&self) -> usize {
+    self.image.width() as usize * self.image.height() as usize * self.image.color().channel_count() as usize
+  }
+
+  fn extra(&self) -> &ExtraArgs {
+    &self.extra
+  }
+
   fn read(&mut self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
     let mut image_iter = match &self.image {
       DynamicImage::ImageRgb8(img_buf) => img_buf.iter(),
@@ -66,19 +74,10 @@ impl Decoder for PngDecoder {
     let size = bits![mut u8, Lsb0; 0u8; 32];
     self.read(size, 0, 0)?;
     let size: usize = size.load();
-    ensure!(size != 0, "no data found");
-
-    let total_size = self.image.width() * self.image.height() * self.image.color().channel_count() as u32 - 32;
-    let max_step = total_size as usize / ((size << 3) / self.extra.lsbs + 1);
-    ensure!(
-      max_step > 0,
-      "invalid data size: {} vs {}",
-      total_size,
-      (size << 3) / self.extra.lsbs + 1
-    );
+    self.check_size(size)?;
 
     let mut data = vec![0u8; size];
-    self.read(data.view_bits_mut(), 32, max_step)?;
+    self.read(data.view_bits_mut(), 32, self.max_step(size))?;
 
     Ok(data)
   }

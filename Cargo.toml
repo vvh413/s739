@@ -16,6 +16,7 @@ rand_chacha = { version = "0.3.1", default-features = false }
 rand_seeder = "0.2.3"
 clap = { version = "4.3.17", features = ["derive"], optional = true }
 clap_complete = { version = "4.3.2", optional = true }
+derivative = "2.2.0"
 
 [dev-dependencies]
 criterion = "0.5.1"

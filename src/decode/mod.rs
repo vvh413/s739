@@ -3,7 +3,7 @@ pub mod png;
 
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec::slice::BitSlice;
 
 use crate::options::ExtraArgs;
@@ -14,6 +14,25 @@ use self::png::PngDecoder;
 pub trait Decoder {
   fn read(&mut self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()>;
   fn read_data(&mut self) -> Result<Vec<u8>>;
+  fn total_size(&self) -> usize;
+  fn extra(&self) -> &ExtraArgs;
+
+  fn check_size(&self, data_size: usize) -> Result<()> {
+    ensure!((data_size << 3) != 0, "no data found");
+    let total_size = self.total_size() - 32;
+    let data_size = (data_size << 3) / self.extra().lsbs + 1;
+    if data_size > total_size {
+      bail!("invalid data size: data {data_size} vs image {total_size}")
+    }
+    Ok(())
+  }
+
+  fn max_step(&self, data_size: usize) -> usize {
+    match self.extra().max_step {
+      Some(max_step) => max_step,
+      None => (self.total_size() - 32) / ((data_size << 3) / self.extra().lsbs + 1),
+    }
+  }
 }
 
 pub fn new_decoder(input: PathBuf, extra_args: ExtraArgs) -> Result<Box<dyn Decoder>> {
