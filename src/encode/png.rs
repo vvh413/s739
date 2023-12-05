@@ -1,8 +1,9 @@
 use crate::options::{ExtraArgs, ImageOptions};
+use crate::utils;
 use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
 use image::{DynamicImage, ImageEncoder};
-use rand::{Rng, SeedableRng};
+use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
@@ -47,7 +48,6 @@ impl Encoder for PngEncoder {
       _ => bail!("invalid color format"),
     };
     let rng = &mut self.rng;
-    let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     let mut data_iter = data.iter();
     let mask = 0xffu8
       .checked_shl(self.extra.bits as u32)
@@ -58,23 +58,12 @@ impl Encoder for PngEncoder {
       image_iter.nth(seek - 1);
     }
 
-    while let Some(pixel) = image_iter.nth(step) {
-      let mut bits = 0;
-      for i in (0..self.extra.bits).rev() {
-        let bit = match data_iter.next() {
-          Some(bit) => bit,
-          None => {
-            if i == self.extra.bits {
-              return Ok(());
-            } else {
-              break;
-            }
-          }
-        };
-        bits |= (if *bit { 1 } else { 0 }) << i;
-      }
+    while let Some(pixel) = image_iter.nth(utils::iter::rand_step(rng, max_step)) {
+      let bits = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
+        Some(bits) => bits,
+        None => return Ok(()),
+      };
       *pixel = (*pixel & mask) | (bits << self.extra.depth);
-      step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     }
 
     if data_iter.next().is_some() {

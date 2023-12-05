@@ -1,11 +1,12 @@
 use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
 use image::DynamicImage;
-use rand::{Rng, SeedableRng};
+use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
 use crate::options::ExtraArgs;
+use crate::utils;
 
 use super::Decoder;
 
@@ -48,15 +49,14 @@ impl Decoder for PngDecoder {
       _ => bail!("invalid color format"),
     };
     let rng = &mut self.rng;
-    let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     let mut data_iter = data.iter_mut();
 
     if seek > 0 {
       image_iter.nth(seek - 1);
     }
 
-    while let Some(pixel) = image_iter.nth(step) {
-      let value = *pixel >> self.extra.depth & !0xffu8.checked_shl(self.extra.bits as u32).unwrap_or(0);
+    while let Some(pixel) = image_iter.nth(utils::iter::rand_step(rng, max_step)) {
+      let value = *pixel >> self.extra.depth & !u8::max_value().checked_shl(self.extra.bits as u32).unwrap_or(0);
       let mut value = value.reverse_bits() >> (8 - self.extra.bits);
       for _ in 0..self.extra.bits {
         let mut bit = match data_iter.next() {
@@ -66,7 +66,6 @@ impl Decoder for PngDecoder {
         *bit = (value & 1) == 1;
         value >>= 1;
       }
-      step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     }
 
     if data_iter.next().is_some() {

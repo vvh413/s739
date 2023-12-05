@@ -6,7 +6,13 @@ use mozjpeg_sys::{
 
 use crate::options::{ExtraArgs, JpegOptions};
 
-type Blocks = Vec<(*mut [i16; 64], u32)>;
+pub struct Blocks(Vec<(*mut [i16; 64], usize)>);
+
+impl Blocks {
+  pub fn inner(&self) -> &Vec<(*mut [i16; 64], usize)> {
+    &self.0
+  }
+}
 
 pub unsafe fn decompress(buffer: &Vec<u8>) -> Result<jpeg_decompress_struct> {
   let mut err: jpeg_error_mgr = std::mem::zeroed();
@@ -35,7 +41,7 @@ pub unsafe fn get_blocks(
   coefs_ptr: *mut *mut jvirt_barray_control,
   comp: Option<u8>,
 ) -> Result<(Blocks, usize)> {
-  let mut result: Vec<(*mut [i16; 64], u32)> = Vec::new();
+  let mut result = Blocks(Vec::new());
   let mut size: u32 = 0;
   let mut buffer;
 
@@ -64,7 +70,7 @@ pub unsafe fn get_blocks(
       );
       for offset_y in 0..(*comp_info).v_samp_factor {
         let block = *buffer.offset(offset_y as isize);
-        result.push((block, (*comp_info).width_in_blocks));
+        result.0.push((block, (*comp_info).width_in_blocks as usize));
       }
     }
   }
@@ -79,6 +85,14 @@ pub unsafe fn set_options(cinfo: &mut jpeg_compress_struct, jpeg_options: JpegOp
   );
 }
 
-pub fn selective_check(extra: &ExtraArgs, idx: usize, coef: usize) -> bool {
-  extra.selective && ((idx == 0) || (coef == 0) || (coef == (extra.bits << extra.depth)))
+pub fn selective_check(extra: &ExtraArgs, idx: usize, coef: i16) -> bool {
+  extra.selective && ((idx == 0) || (coef == 0) || (coef as usize == (extra.bits << extra.depth)))
+}
+
+pub fn selective_total_size(extra: &ExtraArgs, blocks: &Blocks) -> usize {
+  blocks
+    .iter()
+    .enumerate()
+    .filter(|(idx, coef)| !selective_check(extra, *idx, **coef))
+    .count()
 }

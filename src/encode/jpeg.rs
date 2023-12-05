@@ -5,7 +5,7 @@ use mozjpeg_sys::{
   jpeg_finish_compress, jpeg_finish_decompress, jpeg_read_coefficients, jpeg_read_header, jpeg_write_coefficients,
   jvirt_barray_control,
 };
-use rand::{Rng, SeedableRng};
+use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
@@ -18,7 +18,7 @@ pub struct JpegEncoder {
   cinfo: jpeg_decompress_struct,
   coefs_ptr: *mut *mut jvirt_barray_control,
   total_size: usize,
-  blocks: Vec<(*mut [i16; 64], u32)>,
+  blocks: utils::jpeg::Blocks,
   rng: ChaCha20Rng,
   extra: ExtraArgs,
 }
@@ -37,6 +37,12 @@ impl JpegEncoder {
 
       let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
       let (blocks, total_size) = utils::jpeg::get_blocks(&mut cinfo, coefs_ptr, extra.jpeg_comp)?;
+
+      let total_size = if extra.selective {
+        utils::jpeg::selective_total_size(&extra, &blocks)
+      } else {
+        total_size
+      };
 
       (cinfo, coefs_ptr, total_size, blocks)
     };
@@ -63,45 +69,27 @@ impl Encoder for JpegEncoder {
 
   fn write(&mut self, data: &BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
     let rng = &mut self.rng;
-    let mut seek = seek;
-    let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
+
+    let mut image_iter = self
+      .blocks
+      .iter_mut()
+      .enumerate()
+      .filter(|(idx, coef)| !utils::jpeg::selective_check(&self.extra, *idx, **coef))
+      .map(|(_, coef)| coef);
+
     let mut data_iter = data.iter();
-    let mask = (0xffffu16 << self.extra.bits).rotate_left(self.extra.depth as u32) as i16;
+    let mask = (u16::max_value() << self.extra.bits).rotate_left(self.extra.depth as u32) as i16;
 
-    for (block, width) in self.blocks.iter() {
-      for blk_x in 0..*width {
-        for (idx, coef) in unsafe { (*block.offset(blk_x as isize)).iter_mut() }.enumerate() {
-          if seek > 0 {
-            seek -= 1;
-            continue;
-          }
-          if step > 0 {
-            step -= 1;
-            continue;
-          }
-          if utils::jpeg::selective_check(&self.extra, idx, *coef as usize) {
-            continue;
-          }
+    if seek > 0 {
+      image_iter.nth(seek - 1);
+    }
 
-          let mut bits = 0;
-          for i in (0..self.extra.bits).rev() {
-            let bit = match data_iter.next() {
-              Some(bit) => bit,
-              None => {
-                if i == self.extra.bits {
-                  return Ok(());
-                } else {
-                  break;
-                }
-              }
-            };
-            bits |= (if *bit { 1 } else { 0 }) << i;
-          }
-          *coef = (*coef & mask) | (bits << self.extra.depth);
-
-          step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
-        }
-      }
+    while let Some(coef) = image_iter.nth(utils::iter::rand_step(rng, max_step)) {
+      let bits = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
+        Some(bits) => bits as i16,
+        None => return Ok(()),
+      };
+      *coef = (*coef & mask) | (bits << self.extra.depth);
     }
 
     if data_iter.next().is_some() {
