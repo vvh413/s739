@@ -3,17 +3,17 @@ use std::slice::{Iter, IterMut};
 use bitvec::prelude::*;
 use rand::Rng;
 
-pub fn get_n_data_bits(data_iter: &mut bitvec::slice::Iter<'_, u8, Lsb0>, n_bits: usize) -> Option<u8> {
+pub fn get_n_data_bits<T: From<u8>>(data_iter: &mut bitvec::slice::Iter<'_, u8, Lsb0>, n_bits: usize) -> Option<T> {
   let mut bits: u8 = 0;
   for i in (0..n_bits).rev() {
     let bit = match data_iter.next() {
       Some(bit) => bit,
       None if i == n_bits => return None,
-      None => return Some(bits),
+      None => return Some(bits.into()),
     };
     bits |= (if *bit { 1 } else { 0 }) << i;
   }
-  Some(bits)
+  Some(bits.into())
 }
 
 pub fn rand_step<R: Rng>(rng: &mut R, max_step: usize) -> usize {

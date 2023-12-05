@@ -85,8 +85,8 @@ impl Encoder for JpegEncoder {
     }
 
     while let Some(coef) = image_iter.nth(utils::iter::rand_step(rng, max_step)) {
-      let bits = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
-        Some(bits) => bits as i16,
+      let bits: i16 = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
+        Some(bits) => bits,
         None => return Ok(()),
       };
       *coef = (*coef & mask) | (bits << self.extra.depth);

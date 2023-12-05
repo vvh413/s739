@@ -49,7 +49,7 @@ impl Encoder for PngEncoder {
     };
     let rng = &mut self.rng;
     let mut data_iter = data.iter();
-    let mask = 0xffu8
+    let mask = u8::max_value()
       .checked_shl(self.extra.bits as u32)
       .unwrap_or(0)
       .rotate_left(self.extra.depth as u32);
@@ -59,7 +59,7 @@ impl Encoder for PngEncoder {
     }
 
     while let Some(pixel) = image_iter.nth(utils::iter::rand_step(rng, max_step)) {
-      let bits = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
+      let bits: u8 = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
         Some(bits) => bits,
         None => return Ok(()),
       };
