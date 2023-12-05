@@ -24,10 +24,10 @@ pub struct JpegDecoder {
 impl JpegDecoder {
   pub fn new(image_buffer: &Vec<u8>, extra: ExtraArgs) -> Result<Self> {
     ensure!(
-      extra.depth + extra.lsbs <= 8,
-      "invalid depth and LSBs: {} + {} > 8",
+      extra.depth + extra.bits <= 8,
+      "invalid depth and bits: {} + {} > 8",
       extra.depth,
-      extra.lsbs
+      extra.bits
     );
     let (cinfo, total_size, blocks) = unsafe {
       let mut cinfo = utils::jpeg::decompress(image_buffer)?;
@@ -50,7 +50,7 @@ impl JpegDecoder {
 
 impl Decoder for JpegDecoder {
   fn total_size(&self) -> usize {
-    (self.total_size - 32) * self.extra().lsbs
+    (self.total_size - 32) * self.extra().bits
   }
 
   fn extra(&self) -> &ExtraArgs {
@@ -78,9 +78,9 @@ impl Decoder for JpegDecoder {
             continue;
           }
 
-          let value = *coef as u16 >> self.extra.depth & !(0xffff << self.extra.lsbs);
-          let mut value = value.reverse_bits() >> (16 - self.extra.lsbs);
-          for _ in 0..self.extra.lsbs {
+          let value = *coef as u16 >> self.extra.depth & !(0xffff << self.extra.bits);
+          let mut value = value.reverse_bits() >> (16 - self.extra.bits);
+          for _ in 0..self.extra.bits {
             let mut bit = match data_iter.next() {
               Some(bit) => bit,
               None => return Ok(()),

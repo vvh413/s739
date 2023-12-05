@@ -119,14 +119,14 @@ fn jpeg_depth() -> Result<()> {
 }
 
 #[test]
-fn png_lsbs() -> Result<()> {
-  for lsbs in 1..=8 {
+fn png_bits() -> Result<()> {
+  for bits in 1..=8 {
     e2e(
       "png",
       (128, 128),
       13,
       ExtraArgs {
-        lsbs,
+        bits,
         ..Default::default()
       },
     )?;
@@ -135,14 +135,14 @@ fn png_lsbs() -> Result<()> {
 }
 
 #[test]
-fn jpeg_lsbs() -> Result<()> {
-  for lsbs in 1..=8 {
+fn jpeg_bits() -> Result<()> {
+  for bits in 1..=8 {
     e2e(
       "jpg",
       (128, 128),
       128,
       ExtraArgs {
-        lsbs,
+        bits,
         ..Default::default()
       },
     )?;
@@ -158,7 +158,7 @@ fn png_wrong_depth_and_lsbs() {
     128,
     ExtraArgs {
       depth: 2,
-      lsbs: 7,
+      bits: 7,
       ..Default::default()
     },
   );
@@ -173,7 +173,7 @@ fn jpeg_wrong_depth_and_lsbs() {
     128,
     ExtraArgs {
       depth: 7,
-      lsbs: 2,
+      bits: 2,
       ..Default::default()
     },
   );
@@ -188,7 +188,7 @@ fn png_full() -> Result<()> {
     (128, 128),
     total_size,
     ExtraArgs {
-      lsbs: 8,
+      bits: 8,
       ..Default::default()
     },
   )?;
@@ -204,7 +204,7 @@ fn jpeg_full() -> Result<()> {
     (128, 128),
     total_size,
     ExtraArgs {
-      lsbs: 8,
+      bits: 8,
       ..Default::default()
     },
   )?;

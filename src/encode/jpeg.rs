@@ -26,10 +26,10 @@ pub struct JpegEncoder {
 impl JpegEncoder {
   pub fn new(image_buffer: &Vec<u8>, extra: ExtraArgs) -> Result<Self> {
     ensure!(
-      extra.depth + extra.lsbs <= 8,
-      "invalid depth and LSBs: {} + {} > 8",
+      extra.depth + extra.bits <= 8,
+      "invalid depth and bits: {} + {} > 8",
       extra.depth,
-      extra.lsbs
+      extra.bits
     );
     let (cinfo, coefs_ptr, total_size, blocks) = unsafe {
       let mut cinfo = utils::jpeg::decompress(image_buffer)?;
@@ -54,7 +54,7 @@ impl JpegEncoder {
 
 impl Encoder for JpegEncoder {
   fn total_size(&self) -> usize {
-    (self.total_size - 32) * self.extra().lsbs
+    (self.total_size - 32) * self.extra().bits
   }
 
   fn extra(&self) -> &ExtraArgs {
@@ -66,7 +66,7 @@ impl Encoder for JpegEncoder {
     let mut seek = seek;
     let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     let mut data_iter = data.iter();
-    let mask = (0xffffu16 << self.extra.lsbs).rotate_left(self.extra.depth as u32) as i16;
+    let mask = (0xffffu16 << self.extra.bits).rotate_left(self.extra.depth as u32) as i16;
 
     for (block, width) in self.blocks.iter() {
       for blk_x in 0..*width {
@@ -84,11 +84,11 @@ impl Encoder for JpegEncoder {
           }
 
           let mut bits = 0;
-          for i in (0..self.extra.lsbs).rev() {
+          for i in (0..self.extra.bits).rev() {
             let bit = match data_iter.next() {
               Some(bit) => bit,
               None => {
-                if i == self.extra.lsbs {
+                if i == self.extra.bits {
                   return Ok(());
                 } else {
                   break;

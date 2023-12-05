@@ -34,9 +34,9 @@ pub struct ExtraArgs {
   /// Depth (least bit to use)
   #[arg(long, default_value_t = 0, value_parser = 0..=7)]
   depth: i64,
-  /// Number of bits to use
+  /// Number of bits per single image unit (pixel/DCT coef)
   #[arg(long, default_value_t = 1, value_parser = 1..=8)]
-  lsbs: i64,
+  bits: i64,
   /// JPEG component index
   #[arg(long)]
   jpeg_comp: Option<u8>,
@@ -51,7 +51,7 @@ impl From<ExtraArgs> for s739::options::ExtraArgs {
       key: value.key,
       selective: value.selective,
       depth: value.depth as usize,
-      lsbs: value.lsbs as usize,
+      bits: value.bits as usize,
       jpeg_comp: value.jpeg_comp,
       max_step: value.max_step,
     }

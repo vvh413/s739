@@ -17,10 +17,10 @@ pub struct PngEncoder {
 impl PngEncoder {
   pub fn new(image: DynamicImage, extra: ExtraArgs) -> Result<Self> {
     ensure!(
-      extra.depth + extra.lsbs <= 8,
-      "invalid depth and LSBs: {} + {} > 8",
+      extra.depth + extra.bits <= 8,
+      "invalid depth and bits: {} + {} > 8",
       extra.depth,
-      extra.lsbs
+      extra.bits
     );
     Ok(Self {
       image,
@@ -33,7 +33,7 @@ impl PngEncoder {
 impl Encoder for PngEncoder {
   fn total_size(&self) -> usize {
     (self.image.width() as usize * self.image.height() as usize * self.image.color().channel_count() as usize - 32)
-      * self.extra().lsbs
+      * self.extra().bits
   }
 
   fn extra(&self) -> &ExtraArgs {
@@ -50,7 +50,7 @@ impl Encoder for PngEncoder {
     let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
     let mut data_iter = data.iter();
     let mask = 0xffu8
-      .checked_shl(self.extra.lsbs as u32)
+      .checked_shl(self.extra.bits as u32)
       .unwrap_or(0)
       .rotate_left(self.extra.depth as u32);
 
@@ -60,11 +60,11 @@ impl Encoder for PngEncoder {
 
     while let Some(pixel) = image_iter.nth(step) {
       let mut bits = 0;
-      for i in (0..self.extra.lsbs).rev() {
+      for i in (0..self.extra.bits).rev() {
         let bit = match data_iter.next() {
           Some(bit) => bit,
           None => {
-            if i == self.extra.lsbs {
+            if i == self.extra.bits {
               return Ok(());
             } else {
               break;

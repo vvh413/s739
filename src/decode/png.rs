@@ -18,10 +18,10 @@ pub struct PngDecoder {
 impl PngDecoder {
   pub fn new(image: DynamicImage, extra: ExtraArgs) -> Result<Self> {
     ensure!(
-      extra.depth + extra.lsbs <= 8,
-      "invalid depth and LSBs: {} + {} > 8",
+      extra.depth + extra.bits <= 8,
+      "invalid depth and bits: {} + {} > 8",
       extra.depth,
-      extra.lsbs
+      extra.bits
     );
     Ok(Self {
       image,
@@ -34,7 +34,7 @@ impl PngDecoder {
 impl Decoder for PngDecoder {
   fn total_size(&self) -> usize {
     (self.image.width() as usize * self.image.height() as usize * self.image.color().channel_count() as usize - 32)
-      * self.extra().lsbs
+      * self.extra().bits
   }
 
   fn extra(&self) -> &ExtraArgs {
@@ -56,9 +56,9 @@ impl Decoder for PngDecoder {
     }
 
     while let Some(pixel) = image_iter.nth(step) {
-      let value = *pixel >> self.extra.depth & !0xffu8.checked_shl(self.extra.lsbs as u32).unwrap_or(0);
-      let mut value = value.reverse_bits() >> (8 - self.extra.lsbs);
-      for _ in 0..self.extra.lsbs {
+      let value = *pixel >> self.extra.depth & !0xffu8.checked_shl(self.extra.bits as u32).unwrap_or(0);
+      let mut value = value.reverse_bits() >> (8 - self.extra.bits);
+      for _ in 0..self.extra.bits {
         let mut bit = match data_iter.next() {
           Some(bit) => bit,
           None => return Ok(()),

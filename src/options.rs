@@ -27,7 +27,7 @@ pub struct ExtraArgs {
   pub selective: bool,
   pub depth: usize,
   #[derivative(Default(value = "1"))]
-  pub lsbs: usize,
+  pub bits: usize,
   pub jpeg_comp: Option<u8>,
   pub max_step: Option<usize>,
 }
