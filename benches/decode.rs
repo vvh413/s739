@@ -13,7 +13,7 @@ fn decode(c: &mut criterion::Criterion) {
       let mut encoder = encode::png::PngEncoder::new(image, ExtraArgs::default()).unwrap();
       encoder.write_data(&data).unwrap();
       b.iter(|| {
-        let mut decoder = decode::png::PngDecoder::new(encoder.image.clone(), ExtraArgs::default()).unwrap();
+        let decoder = decode::png::PngDecoder::new(encoder.image.clone(), ExtraArgs::default()).unwrap();
         decoder.read_data()
       })
     });
@@ -28,7 +28,7 @@ fn decode(c: &mut criterion::Criterion) {
       encoder.write_data(&data).unwrap();
       let image_buffer = encoder.encode_image(s739::options::ImageOptions::default()).unwrap();
       b.iter(|| {
-        let mut decoder = decode::jpeg::JpegDecoder::new(&image_buffer, ExtraArgs::default()).unwrap();
+        let decoder = decode::jpeg::JpegDecoder::new(&image_buffer, ExtraArgs::default()).unwrap();
         decoder.read_data()
       })
     });
