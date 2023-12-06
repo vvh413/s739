@@ -14,9 +14,10 @@ fn rand_string(size: usize) -> String {
 }
 
 fn e2e(ext: &str, image_size: (u32, u32), data_size: usize, extra: ExtraArgs, rand: bool) -> Result<()> {
-  let in_path = format!("/tmp/s739_in_{image_size:?}_{data_size}_{extra:?}.{ext}");
-  let out_path = format!("/tmp/s739_out_{image_size:?}_{data_size}_{extra:?}.{ext}");
-  let data = rand_string(data_size).into_bytes();
+  let data = rand_string(data_size);
+  let in_path = format!("/tmp/s739_in_{}.{ext}", &data[..32]);
+  let out_path = format!("/tmp/s739_out_{}.{ext}", &data[..32]);
+  let data = data.into_bytes();
 
   let mut image_buffer = image::ImageBuffer::new(image_size.0, image_size.1);
   if rand {
@@ -133,7 +134,7 @@ fn png_bits() -> Result<()> {
     e2e(
       "png",
       (128, 128),
-      13,
+      128,
       ExtraArgs {
         bits,
         ..Default::default()
