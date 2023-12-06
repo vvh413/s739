@@ -3,6 +3,10 @@ use std::slice::{Iter, IterMut};
 use bitvec::prelude::*;
 use rand::Rng;
 
+use crate::options::ExtraArgs;
+
+use super::jpeg::selective_check;
+
 pub fn get_n_data_bits<T: From<u8>>(data_iter: &mut bitvec::slice::Iter<'_, u8, Lsb0>, n_bits: usize) -> Option<T> {
   let mut bits: u8 = 0;
   for i in (0..n_bits).rev() {
@@ -62,14 +66,16 @@ pub struct JpegCoefIter<'a> {
   block_iter: JpegBlockIter<'a>,
   current_block: Option<Iter<'a, i16>>,
   coef_idx: usize,
+  extra: ExtraArgs,
 }
 
 impl<'a> JpegCoefIter<'a> {
-  fn new(blocks: &'a super::jpeg::Blocks) -> Self {
+  fn new(blocks: &'a super::jpeg::Blocks, extra: ExtraArgs) -> Self {
     Self {
       block_iter: JpegBlockIter::new(blocks),
       current_block: None,
       coef_idx: 0,
+      extra,
     }
   }
 }
@@ -83,8 +89,13 @@ impl<'a> Iterator for JpegCoefIter<'a> {
     }
     match self.current_block {
       Some(ref mut block) => {
+        let curr_idx = self.coef_idx;
         self.coef_idx = (self.coef_idx + 1) % 64;
-        block.next()
+        match block.next() {
+          Some(coef) if selective_check(&self.extra, curr_idx, *coef) => self.next(),
+          Some(coef) => Some(coef),
+          None => None,
+        }
       }
       None => None,
     }
@@ -95,14 +106,16 @@ pub struct JpegCoefIterMut<'a> {
   block_iter: JpegBlockIter<'a>,
   current_block: Option<IterMut<'a, i16>>,
   coef_idx: usize,
+  extra: ExtraArgs,
 }
 
 impl<'a> JpegCoefIterMut<'a> {
-  fn new(blocks: &'a super::jpeg::Blocks) -> Self {
+  fn new(blocks: &'a super::jpeg::Blocks, extra: ExtraArgs) -> Self {
     Self {
       block_iter: JpegBlockIter::new(blocks),
       current_block: None,
       coef_idx: 0,
+      extra,
     }
   }
 }
@@ -116,8 +129,13 @@ impl<'a> Iterator for JpegCoefIterMut<'a> {
     }
     match self.current_block {
       Some(ref mut block) => {
+        let curr_idx = self.coef_idx;
         self.coef_idx = (self.coef_idx + 1) % 64;
-        block.next()
+        match block.next() {
+          Some(coef) if selective_check(&self.extra, curr_idx, *coef) => self.next(),
+          Some(coef) => Some(coef),
+          None => None,
+        }
       }
       None => None,
     }
@@ -125,11 +143,11 @@ impl<'a> Iterator for JpegCoefIterMut<'a> {
 }
 
 impl super::jpeg::Blocks {
-  pub fn iter(&self) -> JpegCoefIter {
-    JpegCoefIter::new(self)
+  pub fn iter(&self, extra: ExtraArgs) -> JpegCoefIter {
+    JpegCoefIter::new(self, extra)
   }
 
-  pub fn iter_mut(&self) -> JpegCoefIterMut {
-    JpegCoefIterMut::new(self)
+  pub fn iter_mut(&self, extra: ExtraArgs) -> JpegCoefIterMut {
+    JpegCoefIterMut::new(self, extra)
   }
 }

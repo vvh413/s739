@@ -17,7 +17,7 @@ fn decode(args: DecodeArgs) -> Result<()> {
     extra_args,
   } = args;
 
-  let mut decoder = new_decoder(input, extra_args.into())?;
+  let decoder = new_decoder(input, extra_args.into())?;
   let data = decoder.read_data()?;
 
   match file {

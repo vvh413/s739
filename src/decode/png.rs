@@ -12,7 +12,6 @@ use super::Decoder;
 
 pub struct PngDecoder {
   image: DynamicImage,
-  rng: ChaCha20Rng,
   extra: ExtraArgs,
 }
 
@@ -24,11 +23,7 @@ impl PngDecoder {
       extra.depth,
       extra.bits
     );
-    Ok(Self {
-      image,
-      rng: ChaCha20Rng::from_seed(Seeder::from(extra.key.clone()).make_seed()),
-      extra,
-    })
+    Ok(Self { image, extra })
   }
 }
 
@@ -42,20 +37,20 @@ impl Decoder for PngDecoder {
     &self.extra
   }
 
-  fn read(&mut self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
+  fn read(&self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
     let mut image_iter = match &self.image {
       DynamicImage::ImageRgb8(img_buf) => img_buf.iter(),
       DynamicImage::ImageRgba8(img_buf) => img_buf.iter(),
       _ => bail!("invalid color format"),
     };
-    let rng = &mut self.rng;
+    let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra.key.clone()).make_seed());
     let mut data_iter = data.iter_mut();
 
     if seek > 0 {
       image_iter.nth(seek - 1);
     }
 
-    while let Some(pixel) = image_iter.nth(utils::iter::rand_step(rng, max_step)) {
+    while let Some(pixel) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
       let value = *pixel >> self.extra.depth & !u8::max_value().checked_shl(self.extra.bits as u32).unwrap_or(0);
       let mut value = value.reverse_bits() >> (8 - self.extra.bits);
       for _ in 0..self.extra.bits {

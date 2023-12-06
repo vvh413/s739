@@ -34,7 +34,7 @@ fn e2e(ext: &str, image_size: (u32, u32), data_size: usize, extra: ExtraArgs, ra
   std::fs::write(out_path.clone(), buffer)?;
 
   println!("decoding");
-  let mut decoder = new_decoder(out_path.clone().into(), extra.clone())?;
+  let decoder = new_decoder(out_path.clone().into(), extra.clone())?;
   let decoded_data = decoder.read_data()?;
   println!("done: {ext}");
   assert_eq!(decoded_data, data);
@@ -43,7 +43,7 @@ fn e2e(ext: &str, image_size: (u32, u32), data_size: usize, extra: ExtraArgs, ra
     println!("decoding wrong key");
     let mut wrong_extra = extra;
     wrong_extra.key = None;
-    let mut decoder = new_decoder(out_path.into(), wrong_extra)?;
+    let decoder = new_decoder(out_path.into(), wrong_extra)?;
     let decoded_data = decoder.read_data()?;
     println!("done");
     assert_ne!(decoded_data, data);

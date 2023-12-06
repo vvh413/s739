@@ -1,12 +1,14 @@
 use anyhow::{ensure, Result};
 use mozjpeg_sys::{
-  jpeg_c_set_int_param, jpeg_compress_struct, jpeg_create_compress, jpeg_create_decompress, jpeg_decompress_struct,
-  jpeg_error_mgr, jpeg_mem_dest, jpeg_mem_src, jpeg_std_error, jvirt_barray_control, J_INT_PARAM,
+  boolean, jpeg_c_set_int_param, jpeg_compress_struct, jpeg_create_compress, jpeg_create_decompress,
+  jpeg_decompress_struct, jpeg_error_mgr, jpeg_mem_dest, jpeg_mem_src, jpeg_read_coefficients, jpeg_read_header,
+  jpeg_std_error, jvirt_barray_control, J_INT_PARAM,
 };
 
 use crate::options::{ExtraArgs, JpegOptions};
 
 pub struct Blocks(Vec<(*mut [i16; 64], usize)>);
+type DecompressedJpeg = (jpeg_decompress_struct, *mut *mut jvirt_barray_control, usize, Blocks);
 
 impl Blocks {
   pub fn inner(&self) -> &Vec<(*mut [i16; 64], usize)> {
@@ -14,7 +16,7 @@ impl Blocks {
   }
 }
 
-pub unsafe fn decompress(buffer: &Vec<u8>) -> Result<jpeg_decompress_struct> {
+pub unsafe fn decompress(buffer: &Vec<u8>, extra: &ExtraArgs) -> Result<DecompressedJpeg> {
   let mut err: jpeg_error_mgr = std::mem::zeroed();
   let mut cinfo: jpeg_decompress_struct = std::mem::zeroed();
   cinfo.common.err = jpeg_std_error(&mut err);
@@ -22,7 +24,11 @@ pub unsafe fn decompress(buffer: &Vec<u8>) -> Result<jpeg_decompress_struct> {
 
   jpeg_mem_src(&mut cinfo, buffer.as_ptr(), buffer.len().try_into()?);
 
-  Ok(cinfo)
+  jpeg_read_header(&mut cinfo, true as boolean);
+  let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
+  let (blocks, total_size) = get_blocks(&mut cinfo, coefs_ptr, extra.jpeg_comp)?;
+
+  Ok((cinfo, coefs_ptr, total_size, blocks))
 }
 
 pub unsafe fn compress(buffer_ptr: *mut *mut u8, buffer_size: *mut libc::c_ulong) -> jpeg_compress_struct {
@@ -87,12 +93,4 @@ pub unsafe fn set_options(cinfo: &mut jpeg_compress_struct, jpeg_options: JpegOp
 
 pub fn selective_check(extra: &ExtraArgs, idx: usize, coef: i16) -> bool {
   extra.selective && ((idx == 0) || (coef == 0) || (coef as usize == (extra.bits << extra.depth)))
-}
-
-pub fn selective_total_size(extra: &ExtraArgs, blocks: &Blocks) -> usize {
-  blocks
-    .iter()
-    .enumerate()
-    .filter(|(idx, coef)| !selective_check(extra, *idx, **coef))
-    .count()
 }

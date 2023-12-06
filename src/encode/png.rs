@@ -11,7 +11,6 @@ use super::Encoder;
 
 pub struct PngEncoder {
   pub image: DynamicImage,
-  rng: ChaCha20Rng,
   extra: ExtraArgs,
 }
 
@@ -23,11 +22,7 @@ impl PngEncoder {
       extra.depth,
       extra.bits
     );
-    Ok(Self {
-      image,
-      rng: ChaCha20Rng::from_seed(Seeder::from(extra.key.clone()).make_seed()),
-      extra,
-    })
+    Ok(Self { image, extra })
   }
 }
 
@@ -37,8 +32,8 @@ impl Encoder for PngEncoder {
       * self.extra().bits
   }
 
-  fn extra(&self) -> &ExtraArgs {
-    &self.extra
+  fn extra(&self) -> ExtraArgs {
+    self.extra.clone()
   }
 
   fn write(&mut self, data: &BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
@@ -47,7 +42,7 @@ impl Encoder for PngEncoder {
       DynamicImage::ImageRgba8(img_buf) => img_buf.iter_mut(),
       _ => bail!("invalid color format"),
     };
-    let rng = &mut self.rng;
+    let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra.key.clone()).make_seed());
     let mut data_iter = data.iter();
     let mask = u8::max_value()
       .checked_shl(self.extra.bits as u32)
@@ -58,7 +53,7 @@ impl Encoder for PngEncoder {
       image_iter.nth(seek - 1);
     }
 
-    while let Some(pixel) = image_iter.nth(utils::iter::rand_step(rng, max_step)) {
+    while let Some(pixel) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
       let bits: u8 = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
         Some(bits) => bits,
         None => return Ok(()),
@@ -72,7 +67,7 @@ impl Encoder for PngEncoder {
     Ok(())
   }
 
-  fn encode_image(&mut self, image_opts: ImageOptions) -> Result<Vec<u8>> {
+  fn encode_image(&self, image_opts: ImageOptions) -> Result<Vec<u8>> {
     let mut buffer = Vec::new();
     image::codecs::png::PngEncoder::new_with_quality(&mut buffer, image_opts.png.compression, image_opts.png.filter)
       .write_image(

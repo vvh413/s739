@@ -13,11 +13,11 @@ use self::jpeg::JpegDecoder;
 use self::png::PngDecoder;
 
 pub trait Decoder {
-  fn read(&mut self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()>;
+  fn read(&self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()>;
   fn total_size(&self) -> usize;
   fn extra(&self) -> &ExtraArgs;
 
-  fn read_data(&mut self) -> Result<Vec<u8>> {
+  fn read_data(&self) -> Result<Vec<u8>> {
     let size = bits![mut u8, Lsb0; 0u8; 32];
     self.read(size, 0, 0)?;
     let size: usize = size.load();

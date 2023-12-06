@@ -13,9 +13,9 @@ use self::png::PngEncoder;
 
 pub trait Encoder {
   fn write(&mut self, data: &BitSlice<u8>, seek: usize, max_step: usize) -> Result<()>;
-  fn encode_image(&mut self, image_opts: ImageOptions) -> Result<Vec<u8>>;
+  fn encode_image(&self, image_opts: ImageOptions) -> Result<Vec<u8>>;
   fn total_size(&self) -> usize;
-  fn extra(&self) -> &ExtraArgs;
+  fn extra(&self) -> ExtraArgs;
 
   fn write_data(&mut self, data: &[u8]) -> Result<()> {
     self.check_size(data.len())?;
