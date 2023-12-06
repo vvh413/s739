@@ -14,12 +14,10 @@ fn rand_string(size: usize) -> String {
 }
 
 fn e2e(ext: &str, image_size: (u32, u32), data_size: usize, extra: ExtraArgs, rand: bool) -> Result<()> {
-  println!("--- {image_size:?} {data_size} {extra:?}");
   let in_path = format!("/tmp/s739_in_{image_size:?}_{data_size}_{extra:?}.{ext}");
   let out_path = format!("/tmp/s739_out_{image_size:?}_{data_size}_{extra:?}.{ext}");
   let data = rand_string(data_size).into_bytes();
 
-  println!("encoding");
   let mut image_buffer = image::ImageBuffer::new(image_size.0, image_size.1);
   if rand {
     let mut rng = thread_rng();
@@ -28,7 +26,9 @@ fn e2e(ext: &str, image_size: (u32, u32), data_size: usize, extra: ExtraArgs, ra
   image::DynamicImage::ImageRgb8(image_buffer).save(in_path.clone())?;
 
   let mut encoder = new_encoder(in_path.into(), extra.clone())?;
-  println!("image_size: {}", encoder.total_size());
+  println!("--- {} {} {extra:?}", encoder.total_size(), data_size << 3);
+
+  println!("encoding");
   encoder.write_data(&data)?;
   let buffer = encoder.encode_image(ImageOptions::default())?;
   std::fs::write(out_path.clone(), buffer)?;
@@ -36,7 +36,6 @@ fn e2e(ext: &str, image_size: (u32, u32), data_size: usize, extra: ExtraArgs, ra
   println!("decoding");
   let decoder = new_decoder(out_path.clone().into(), extra.clone())?;
   let decoded_data = decoder.read_data()?;
-  println!("done: {ext}");
   assert_eq!(decoded_data, data);
 
   if extra.key.is_some() {
@@ -45,10 +44,10 @@ fn e2e(ext: &str, image_size: (u32, u32), data_size: usize, extra: ExtraArgs, ra
     wrong_extra.key = None;
     let decoder = new_decoder(out_path.into(), wrong_extra)?;
     let decoded_data = decoder.read_data()?;
-    println!("done");
     assert_ne!(decoded_data, data);
   }
 
+  println!("done");
   Ok(())
 }
 
