@@ -15,7 +15,7 @@
 
 #### Static build from releases
 ```sh
-curl -L https://github.com/vvh413/s739/releases/latest/download/s739 --output ~/.local/bin/s739
+curl -sL https://github.com/vvh413/s739/releases/latest/download/s739 --output ~/.local/bin/s739
 chmod +x ~/.local/bin/s739
 ```
 
@@ -88,6 +88,16 @@ Options:
           Read data from stdin
   -k, --key <KEY>
           Secret key
+      --selective
+          Skip some DCT coefs for JPEG
+      --depth <DEPTH>
+          Depth (least bit to use) [default: 0]
+      --bits <BITS>
+          Number of bits per single image unit (pixel/DCT coef) [default: 1]
+      --jpeg-comp <JPEG_COMP>
+          JPEG component index
+      --max-step <MAX_STEP>
+          Overwrite calculated max step
   -h, --help
           Print help
 ```
@@ -101,8 +111,13 @@ Decode data from image
 Usage: s739 decode [OPTIONS] --input <INPUT>
 
 Options:
-  -i, --input <INPUT>  Input file
-  -f, --file <FILE>    Write data to file
-  -k, --key <KEY>      Secret key
-  -h, --help           Print help
+  -i, --input <INPUT>          Input file
+  -f, --file <FILE>            Write data to file
+  -k, --key <KEY>              Secret key
+      --selective              Skip some DCT coefs for JPEG
+      --depth <DEPTH>          Depth (least bit to use) [default: 0]
+      --bits <BITS>            Number of bits per single image unit (pixel/DCT coef) [default: 1]
+      --jpeg-comp <JPEG_COMP>  JPEG component index
+      --max-step <MAX_STEP>    Overwrite calculated max step
+  -h, --help                   Print help
 ```

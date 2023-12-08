@@ -17,12 +17,45 @@ pub struct Cli {
 pub enum Command {
   /// Encode data to image
   Encode(EncodeArgs),
-
   /// Decode data from image
   Decode(DecodeArgs),
-
   /// Generate shell completions
   Generate { shell: Shell },
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct ExtraArgs {
+  /// Secret key
+  #[arg(short, long, value_hint = ValueHint::Other)]
+  key: Option<String>,
+  /// Skip some DCT coefs for JPEG
+  #[arg(long)]
+  selective: bool,
+  /// Depth (least bit to use)
+  #[arg(long, default_value_t = 0, value_parser = 0..=7)]
+  depth: i64,
+  /// Number of bits per single image unit (pixel/DCT coef)
+  #[arg(long, default_value_t = 1, value_parser = 1..=8)]
+  bits: i64,
+  /// JPEG component index
+  #[arg(long)]
+  jpeg_comp: Option<u8>,
+  /// Overwrite calculated max step
+  #[arg(long)]
+  max_step: Option<usize>,
+}
+
+impl From<ExtraArgs> for s739::options::ExtraArgs {
+  fn from(value: ExtraArgs) -> Self {
+    Self {
+      key: value.key,
+      selective: value.selective,
+      depth: value.depth as usize,
+      bits: value.bits as usize,
+      jpeg_comp: value.jpeg_comp,
+      max_step: value.max_step,
+    }
+  }
 }
 
 #[derive(Args, Debug, Clone)]
@@ -30,28 +63,23 @@ pub struct EncodeArgs {
   /// Input file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub input: PathBuf,
-
   /// Output file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub output: PathBuf,
-
   #[command(flatten)]
   pub image_opts: ImageOptions,
-
   #[command(flatten)]
   pub data: Data,
-
-  /// Secret key
-  #[arg(short, long, value_hint = ValueHint::Other)]
-  pub key: Option<String>,
+  #[command(flatten)]
+  pub extra_args: ExtraArgs,
 }
 
 #[derive(Args, Debug, Clone, Default)]
 pub struct ImageOptions {
   #[command(flatten)]
-  pub png: PngOptions,
+  png: PngOptions,
   #[command(flatten)]
-  pub jpeg: JpegOptions,
+  jpeg: JpegOptions,
 }
 
 impl From<ImageOptions> for s739::options::ImageOptions {
@@ -67,10 +95,10 @@ impl From<ImageOptions> for s739::options::ImageOptions {
 pub struct PngOptions {
   /// PNG compression type
   #[arg(long = "png-compression", default_value_t = png::CompressionType::Fast)]
-  pub compression: png::CompressionType,
+  compression: png::CompressionType,
   /// PNG filter type
   #[arg(long = "png-filter", default_value_t = png::FilterType::Adaptive)]
-  pub filter: png::FilterType,
+  filter: png::FilterType,
 }
 
 impl From<PngOptions> for s739::options::PngOptions {
@@ -103,11 +131,9 @@ pub struct Data {
   /// Encode plain text data
   #[arg(short, long, value_hint = ValueHint::Other)]
   pub text: Option<String>,
-
   /// Encode file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub file: Option<PathBuf>,
-
   /// Read data from stdin
   #[arg(short, long)]
   pub stdin: bool,
@@ -118,14 +144,11 @@ pub struct DecodeArgs {
   /// Input file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub input: PathBuf,
-
   /// Write data to file
   #[arg(short, long, value_hint = ValueHint::FilePath)]
   pub file: Option<PathBuf>,
-
-  /// Secret key
-  #[arg(short, long, value_hint = ValueHint::Other)]
-  pub key: Option<String>,
+  #[command(flatten)]
+  pub extra_args: ExtraArgs,
 }
 
 pub fn print_completions<G: Generator>(gen: G, cmd: &mut clap::Command) {

@@ -1,17 +1,15 @@
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec::slice::BitSlice;
-use bitvec::view::BitView;
 use mozjpeg_sys::{
-  boolean, jpeg_c_set_int_param, jpeg_copy_critical_parameters, jpeg_decompress_struct, jpeg_destroy_compress,
-  jpeg_destroy_decompress, jpeg_finish_compress, jpeg_finish_decompress, jpeg_read_coefficients, jpeg_read_header,
-  jpeg_write_coefficients, jvirt_barray_control, J_INT_PARAM,
+  jpeg_copy_critical_parameters, jpeg_decompress_struct, jpeg_destroy_compress, jpeg_destroy_decompress,
+  jpeg_finish_compress, jpeg_finish_decompress, jpeg_write_coefficients, jvirt_barray_control,
 };
-use rand::{Rng, SeedableRng};
+use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
-use crate::options::ImageOptions;
-use crate::utils::{compress, decompress, get_blocks, get_total_size};
+use crate::options::{ExtraArgs, ImageOptions};
+use crate::utils;
 
 use super::Encoder;
 
@@ -19,21 +17,25 @@ pub struct JpegEncoder {
   cinfo: jpeg_decompress_struct,
   coefs_ptr: *mut *mut jvirt_barray_control,
   total_size: usize,
-  blocks: Vec<(*mut [i16; 64], u32)>,
-  rng: ChaCha20Rng,
+  blocks: utils::jpeg::Blocks,
+  extra: ExtraArgs,
 }
 
 impl JpegEncoder {
-  pub fn new(image_buffer: &Vec<u8>, key: Option<String>) -> Result<Self> {
-    let (cinfo, coefs_ptr, total_size, blocks) = unsafe {
-      let mut cinfo = decompress(image_buffer)?;
-      jpeg_read_header(&mut cinfo, true as boolean);
+  pub fn new(image_buffer: &Vec<u8>, extra: ExtraArgs) -> Result<Self> {
+    ensure!(
+      extra.depth + extra.bits <= 8,
+      "invalid depth and bits: {} + {} > 8",
+      extra.depth,
+      extra.bits
+    );
 
-      let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let total_size = get_total_size(&cinfo);
-      let blocks = get_blocks(&mut cinfo, coefs_ptr);
+    let (cinfo, coefs_ptr, total_size, blocks) = unsafe { utils::jpeg::decompress(image_buffer, &extra)? };
 
-      (cinfo, coefs_ptr, total_size, blocks)
+    let total_size = if extra.selective {
+      blocks.iter(extra.clone()).count()
+    } else {
+      total_size
     };
 
     Ok(Self {
@@ -41,68 +43,52 @@ impl JpegEncoder {
       coefs_ptr,
       total_size,
       blocks,
-      rng: ChaCha20Rng::from_seed(Seeder::from(key).make_seed()),
+      extra,
     })
   }
 }
 
 impl Encoder for JpegEncoder {
+  fn total_size(&self) -> usize {
+    (self.total_size - 32) * self.extra().bits
+  }
+
+  fn extra(&self) -> ExtraArgs {
+    self.extra.clone()
+  }
+
   fn write(&mut self, data: &BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
-    let rng = &mut self.rng;
-    let mut seek = seek;
-    let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
+    let mut image_iter = self.blocks.iter_mut(self.extra());
+
+    let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra().key).make_seed());
     let mut data_iter = data.iter();
+    let mask = (u16::max_value() << self.extra().bits).rotate_left(self.extra().depth as u32) as i16;
 
-    for (block, width) in self.blocks.iter() {
-      for blk_x in 0..*width {
-        unsafe {
-          for coef in (*block.offset(blk_x as isize)).iter_mut() {
-            if seek > 0 {
-              seek -= 1;
-              continue;
-            }
-            if step > 0 {
-              step -= 1;
-              continue;
-            }
-
-            let bit = match data_iter.next() {
-              Some(bit) => bit,
-              None => return Ok(()),
-            };
-            *coef = (*coef & -2) | (if *bit { 1 } else { 0 });
-
-            step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
-          }
-        }
-      }
+    if seek > 0 {
+      image_iter.nth(seek - 1);
     }
 
+    while let Some(coef) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
+      let bits: i16 = match utils::iter::get_n_bits(&mut data_iter, self.extra().bits) {
+        Ok(bits) => bits,
+        Err(_) => return Ok(()),
+      };
+      *coef = (*coef & mask) | (bits << self.extra().depth);
+    }
+
+    if data_iter.next().is_some() {
+      bail!("image ended but data not");
+    }
     Ok(())
   }
 
-  fn write_data(&mut self, data: &[u8]) -> Result<()> {
-    ensure!((data.len() << 3) != 0, "data is empty or has invalid size");
-    let max_step = (self.total_size - 32) / (data.len() << 3);
-    ensure!(max_step > 0, "too much data");
-
-    self.write((data.len() as u32).to_le_bytes().view_bits(), 0, 0)?;
-    self.write(data.view_bits(), 32, max_step)?;
-
-    Ok(())
-  }
-
-  fn encode_image(&mut self, image_opts: ImageOptions) -> Result<Vec<u8>> {
+  fn encode_image(&self, image_opts: ImageOptions) -> Result<Vec<u8>> {
     let buffer: Vec<u8> = unsafe {
       let buffer_ptr: *mut *mut u8 = &mut [0u8; 0].as_mut_ptr();
       let buffer_size: *mut libc::c_ulong = &mut 0;
-      let mut dstinfo = compress(buffer_ptr, buffer_size)?;
+      let mut dstinfo = utils::jpeg::compress(buffer_ptr, buffer_size);
 
-      jpeg_c_set_int_param(
-        &mut dstinfo,
-        J_INT_PARAM::JINT_COMPRESS_PROFILE,
-        image_opts.jpeg.compress_profile as i32,
-      );
+      utils::jpeg::set_options(&mut dstinfo, image_opts.jpeg);
       jpeg_copy_critical_parameters(&self.cinfo, &mut dstinfo);
 
       jpeg_write_coefficients(&mut dstinfo, self.coefs_ptr);

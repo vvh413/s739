@@ -1,6 +1,7 @@
 use criterion::{criterion_group, criterion_main};
 use s739::decode::{self, Decoder};
 use s739::encode::{self, Encoder};
+use s739::options::ExtraArgs;
 
 fn decode(c: &mut criterion::Criterion) {
   let mut group = c.benchmark_group("decode");
@@ -9,10 +10,10 @@ fn decode(c: &mut criterion::Criterion) {
     group.bench_with_input(criterion::BenchmarkId::new("png", size), size, |b, &size| {
       let image = image::DynamicImage::ImageRgb8(image::ImageBuffer::new(4000, 4000));
       let data = vec![0u8; size];
-      let mut encoder = encode::png::PngEncoder::new(image, None).unwrap();
+      let mut encoder = encode::png::PngEncoder::new(image, ExtraArgs::default()).unwrap();
       encoder.write_data(&data).unwrap();
       b.iter(|| {
-        let mut decoder = decode::png::PngDecoder::new(encoder.image.clone(), None).unwrap();
+        let decoder = decode::png::PngDecoder::new(encoder.image.clone(), ExtraArgs::default()).unwrap();
         decoder.read_data()
       })
     });
@@ -23,11 +24,11 @@ fn decode(c: &mut criterion::Criterion) {
         .encode(image.as_bytes(), image.width(), image.height(), image.color())
         .unwrap();
       let data = vec![3u8; size];
-      let mut encoder = encode::jpeg::JpegEncoder::new(&image_buffer, None).unwrap();
+      let mut encoder = encode::jpeg::JpegEncoder::new(&image_buffer, ExtraArgs::default()).unwrap();
       encoder.write_data(&data).unwrap();
       let image_buffer = encoder.encode_image(s739::options::ImageOptions::default()).unwrap();
       b.iter(|| {
-        let mut decoder = decode::jpeg::JpegDecoder::new(&image_buffer, None).unwrap();
+        let decoder = decode::jpeg::JpegDecoder::new(&image_buffer, ExtraArgs::default()).unwrap();
         decoder.read_data()
       })
     });

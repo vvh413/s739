@@ -1,90 +1,80 @@
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use bitvec::prelude::*;
-use mozjpeg_sys::{
-  boolean, jpeg_decompress_struct, jpeg_destroy_decompress, jpeg_finish_decompress, jpeg_read_coefficients,
-  jpeg_read_header,
-};
-use rand::{Rng, SeedableRng};
+use mozjpeg_sys::{jpeg_decompress_struct, jpeg_destroy_decompress, jpeg_finish_decompress};
+use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use rand_seeder::Seeder;
 
-use crate::utils::{decompress, get_blocks, get_total_size};
+use crate::options::ExtraArgs;
+use crate::utils;
 
 use super::Decoder;
 
 pub struct JpegDecoder {
   cinfo: jpeg_decompress_struct,
   total_size: usize,
-  blocks: Vec<(*mut [i16; 64], u32)>,
-  rng: ChaCha20Rng,
+  blocks: utils::jpeg::Blocks,
+  extra: ExtraArgs,
 }
 
 impl JpegDecoder {
-  pub fn new(image_buffer: &Vec<u8>, key: Option<String>) -> Result<Self> {
-    let (cinfo, total_size, blocks) = unsafe {
-      let mut cinfo = decompress(image_buffer)?;
-      jpeg_read_header(&mut cinfo, true as boolean);
-      let coefs_ptr = jpeg_read_coefficients(&mut cinfo);
-      let total_size = get_total_size(&cinfo);
-      let blocks = get_blocks(&mut cinfo, coefs_ptr);
+  pub fn new(image_buffer: &Vec<u8>, extra: ExtraArgs) -> Result<Self> {
+    ensure!(
+      extra.depth + extra.bits <= 8,
+      "invalid depth and bits: {} + {} > 8",
+      extra.depth,
+      extra.bits
+    );
 
-      (cinfo, total_size, blocks)
+    let (cinfo, _, total_size, blocks) = unsafe { utils::jpeg::decompress(image_buffer, &extra)? };
+
+    let total_size = if extra.selective {
+      blocks.iter(extra.clone()).count()
+    } else {
+      total_size
     };
 
     Ok(Self {
       cinfo,
       total_size,
       blocks,
-      rng: ChaCha20Rng::from_seed(Seeder::from(key).make_seed()),
+      extra,
     })
   }
 }
 
 impl Decoder for JpegDecoder {
-  fn read(&mut self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
-    let rng = &mut self.rng;
-    let mut seek = seek;
-    let mut step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
-    let mut data_iter = data.iter_mut();
-
-    for (block, width) in self.blocks.iter() {
-      for blk_x in 0..*width {
-        for coef in unsafe { *block.offset(blk_x as isize) }.iter() {
-          if seek > 0 {
-            seek -= 1;
-            continue;
-          }
-          if step > 0 {
-            step -= 1;
-            continue;
-          }
-
-          let mut bit = match data_iter.next() {
-            Some(bit) => bit,
-            None => return Ok(()),
-          };
-          *bit = *coef & 1 == 1;
-
-          step = if max_step > 1 { rng.gen_range(0..max_step) } else { 0 };
-        }
-      }
-    }
-    Ok(())
+  fn total_size(&self) -> usize {
+    (self.total_size - 32) * self.extra().bits
   }
 
-  fn read_data(&mut self) -> Result<Vec<u8>> {
-    let size = bits![mut u8, Lsb0; 0u8; 32];
-    self.read(size, 0, 0)?;
-    let size: usize = size.load();
-    ensure!((size << 3) != 0, "no data found");
+  fn extra(&self) -> &ExtraArgs {
+    &self.extra
+  }
 
-    let max_step = (self.total_size - 32) / (size << 3);
-    ensure!(max_step > 0, "invalid data size");
+  fn read(&self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
+    let mut image_iter = self.blocks.iter(self.extra().clone());
 
-    let mut data = vec![0u8; size];
-    self.read(data.view_bits_mut(), 32, max_step)?;
+    let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra.key.clone()).make_seed());
+    let mut data_iter = data.iter_mut();
+    let mask = !(u16::max_value() << self.extra.bits) as i16;
+    let shift = u16::BITS as usize - self.extra().bits;
 
-    Ok(data)
+    if seek > 0 {
+      image_iter.nth(seek - 1);
+    }
+
+    while let Some(coef) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
+      let value = (*coef >> self.extra().depth & mask).reverse_bits() >> shift;
+      if utils::iter::set_n_bits(value, &mut data_iter, self.extra().bits).is_err() {
+        return Ok(());
+      }
+    }
+
+    if data_iter.next().is_some() {
+      bail!("image ended but data not");
+    }
+    Ok(())
   }
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "s739"
-version = "0.4.6"
+version = "0.5.0"
 edition = "2021"
 authors = ["vvh413"]
 description = "Steganography tool"
@@ -16,6 +16,7 @@ rand_chacha = { version = "0.3.1", default-features = false }
 rand_seeder = "0.2.3"
 clap = { version = "4.3.17", features = ["derive"], optional = true }
 clap_complete = { version = "4.3.2", optional = true }
+derivative = "2.2.0"
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -23,6 +24,7 @@ image = { version = "0.24.6", default-features = false, features = [
   "png",
   "jpeg",
 ] }
+rand = "0.8.5"
 
 [features]
 cli = ["clap", "clap_complete"]

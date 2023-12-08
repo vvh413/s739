@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use clap::ValueEnum;
+use mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE;
 
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum CompressProfile {
@@ -18,11 +19,11 @@ impl Display for CompressProfile {
   }
 }
 
-impl From<CompressProfile> for mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE {
+impl From<CompressProfile> for JINT_COMPRESS_PROFILE_VALUE {
   fn from(value: CompressProfile) -> Self {
     match value {
-      CompressProfile::Max => mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE::JCP_MAX_COMPRESSION,
-      CompressProfile::Fastest => mozjpeg_sys::JINT_COMPRESS_PROFILE_VALUE::JCP_FASTEST,
+      CompressProfile::Max => JINT_COMPRESS_PROFILE_VALUE::JCP_MAX_COMPRESSION,
+      CompressProfile::Fastest => JINT_COMPRESS_PROFILE_VALUE::JCP_FASTEST,
     }
   }
 }

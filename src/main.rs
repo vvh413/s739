@@ -11,9 +11,13 @@ use s739::decode::new_decoder;
 use s739::encode::new_encoder;
 
 fn decode(args: DecodeArgs) -> Result<()> {
-  let DecodeArgs { input, file, key } = args;
+  let DecodeArgs {
+    input,
+    file,
+    extra_args,
+  } = args;
 
-  let mut decoder = new_decoder(input, key)?;
+  let decoder = new_decoder(input, extra_args.into())?;
   let data = decoder.read_data()?;
 
   match file {
@@ -47,10 +51,10 @@ fn encode(args: EncodeArgs) -> Result<()> {
     output,
     data,
     image_opts,
-    key,
+    extra_args,
   } = args;
 
-  let mut encoder = new_encoder(input, key)?;
+  let mut encoder = new_encoder(input, extra_args.into())?;
   let data = read_data(data)?;
   encoder.write_data(&data)?;
   let buffer = encoder.encode_image(image_opts.into())?;
