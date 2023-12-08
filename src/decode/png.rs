@@ -45,21 +45,17 @@ impl Decoder for PngDecoder {
     };
     let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra.key.clone()).make_seed());
     let mut data_iter = data.iter_mut();
+    let mask = !u8::max_value().checked_shl(self.extra().bits as u32).unwrap_or(0);
+    let shift = u8::BITS as usize - self.extra().bits;
 
     if seek > 0 {
       image_iter.nth(seek - 1);
     }
 
-    while let Some(pixel) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
-      let value = *pixel >> self.extra.depth & !u8::max_value().checked_shl(self.extra.bits as u32).unwrap_or(0);
-      let mut value = value.reverse_bits() >> (8 - self.extra.bits);
-      for _ in 0..self.extra.bits {
-        let mut bit = match data_iter.next() {
-          Some(bit) => bit,
-          None => return Ok(()),
-        };
-        *bit = (value & 1) == 1;
-        value >>= 1;
+    while let Some(coef) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
+      let value = (*coef >> self.extra().depth & mask).reverse_bits() >> shift;
+      if utils::iter::set_n_bits(value, &mut data_iter, self.extra().bits).is_err() {
+        return Ok(());
       }
     }
 

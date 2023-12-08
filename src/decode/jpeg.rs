@@ -53,25 +53,21 @@ impl Decoder for JpegDecoder {
   }
 
   fn read(&self, data: &mut BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
-    let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra.key.clone()).make_seed());
     let mut image_iter = self.blocks.iter(self.extra().clone());
+
+    let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra.key.clone()).make_seed());
     let mut data_iter = data.iter_mut();
     let mask = !(u16::max_value() << self.extra.bits) as i16;
+    let shift = u16::BITS as usize - self.extra().bits;
 
     if seek > 0 {
       image_iter.nth(seek - 1);
     }
 
     while let Some(coef) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
-      let value = *coef >> self.extra.depth & mask;
-      let mut value = value.reverse_bits() >> (16 - self.extra.bits);
-      for _ in 0..self.extra.bits {
-        let mut bit = match data_iter.next() {
-          Some(bit) => bit,
-          None => return Ok(()),
-        };
-        *bit = (value & 1) == 1;
-        value >>= 1;
+      let value = (*coef >> self.extra().depth & mask).reverse_bits() >> shift;
+      if utils::iter::set_n_bits(value, &mut data_iter, self.extra().bits).is_err() {
+        return Ok(());
       }
     }
 

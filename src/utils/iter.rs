@@ -1,23 +1,41 @@
+use std::ops::ShrAssign;
 use std::slice::{Iter, IterMut};
 
+use anyhow::{bail, Result};
 use bitvec::prelude::*;
 use rand::Rng;
 
 use crate::options::ExtraArgs;
 
 use super::jpeg::selective_check;
+use std::ops::BitAnd;
 
-pub fn get_n_data_bits<T: From<u8>>(data_iter: &mut bitvec::slice::Iter<'_, u8, Lsb0>, n_bits: usize) -> Option<T> {
+pub fn get_n_bits<T: From<u8>>(data_iter: &mut bitvec::slice::Iter<'_, u8, Lsb0>, n_bits: usize) -> Result<T> {
   let mut bits: u8 = 0;
   for i in (0..n_bits).rev() {
     let bit = match data_iter.next() {
       Some(bit) => bit,
-      None if i == n_bits => return None,
-      None => return Some(bits.into()),
+      None if i == n_bits => bail!("no more data"),
+      None => return Ok(bits.into()),
     };
     bits |= (if *bit { 1 } else { 0 }) << i;
   }
-  Some(bits.into())
+  Ok(bits.into())
+}
+
+pub fn set_n_bits<T>(mut value: T, data_iter: &mut bitvec::slice::IterMut<'_, u8, Lsb0>, n_bits: usize) -> Result<()>
+where
+  T: Copy + From<u8> + BitAnd<Output = T> + ShrAssign + PartialEq<T>,
+{
+  for _ in 0..n_bits {
+    let mut bit = match data_iter.next() {
+      Some(bit) => bit,
+      None => bail!("no more data"),
+    };
+    *bit = (value & T::from(1)) == T::from(1);
+    value >>= T::from(1);
+  }
+  Ok(())
 }
 
 pub fn rand_step<R: Rng>(rng: &mut R, max_step: usize) -> usize {

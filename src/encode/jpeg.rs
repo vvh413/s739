@@ -58,21 +58,22 @@ impl Encoder for JpegEncoder {
   }
 
   fn write(&mut self, data: &BitSlice<u8>, seek: usize, max_step: usize) -> Result<()> {
-    let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra.key.clone()).make_seed());
     let mut image_iter = self.blocks.iter_mut(self.extra());
+
+    let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra().key).make_seed());
     let mut data_iter = data.iter();
-    let mask = (u16::max_value() << self.extra.bits).rotate_left(self.extra.depth as u32) as i16;
+    let mask = (u16::max_value() << self.extra().bits).rotate_left(self.extra().depth as u32) as i16;
 
     if seek > 0 {
       image_iter.nth(seek - 1);
     }
 
     while let Some(coef) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
-      let bits: i16 = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
-        Some(bits) => bits,
-        None => return Ok(()),
+      let bits: i16 = match utils::iter::get_n_bits(&mut data_iter, self.extra().bits) {
+        Ok(bits) => bits,
+        Err(_) => return Ok(()),
       };
-      *coef = (*coef & mask) | (bits << self.extra.depth);
+      *coef = (*coef & mask) | (bits << self.extra().depth);
     }
 
     if data_iter.next().is_some() {

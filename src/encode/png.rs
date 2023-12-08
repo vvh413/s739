@@ -42,6 +42,7 @@ impl Encoder for PngEncoder {
       DynamicImage::ImageRgba8(img_buf) => img_buf.iter_mut(),
       _ => bail!("invalid color format"),
     };
+
     let mut rng = ChaCha20Rng::from_seed(Seeder::from(self.extra.key.clone()).make_seed());
     let mut data_iter = data.iter();
     let mask = u8::max_value()
@@ -54,9 +55,9 @@ impl Encoder for PngEncoder {
     }
 
     while let Some(pixel) = image_iter.nth(utils::iter::rand_step(&mut rng, max_step)) {
-      let bits: u8 = match utils::iter::get_n_data_bits(&mut data_iter, self.extra.bits) {
-        Some(bits) => bits,
-        None => return Ok(()),
+      let bits: u8 = match utils::iter::get_n_bits(&mut data_iter, self.extra.bits) {
+        Ok(bits) => bits,
+        Err(_) => return Ok(()),
       };
       *pixel = (*pixel & mask) | (bits << self.extra.depth);
     }

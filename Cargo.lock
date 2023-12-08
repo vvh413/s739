@@ -751,7 +751,7 @@ checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
 
 [[package]]
 name = "s739"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "bitvec",
