@@ -1,12 +1,12 @@
 use anyhow::Result;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::distr::Alphanumeric;
+use rand::{rng, Rng};
 use s739::decode::new_decoder;
 use s739::encode::new_encoder;
 use s739::options::{ExtraArgs, ImageOptions};
 
 fn rand_string(size: usize) -> String {
-    thread_rng()
+    rng()
         .sample_iter(Alphanumeric)
         .take(size)
         .map(char::from)
@@ -27,8 +27,10 @@ fn e2e(
 
     let mut image_buffer = image::ImageBuffer::new(image_size.0, image_size.1);
     if rand {
-        let mut rng = thread_rng();
-        image_buffer.iter_mut().for_each(|pixel| *pixel = rng.gen());
+        let mut rng = rng();
+        image_buffer
+            .iter_mut()
+            .for_each(|pixel| *pixel = rng.random());
     }
     image::DynamicImage::ImageRgb8(image_buffer).save(in_path.clone())?;
 

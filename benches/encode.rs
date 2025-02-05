@@ -31,7 +31,7 @@ fn encode(c: &mut criterion::Criterion) {
                         image.as_bytes(),
                         image.width(),
                         image.height(),
-                        image.color(),
+                        image.color().into(),
                     )
                     .unwrap();
                 let data = vec![3u8; size];

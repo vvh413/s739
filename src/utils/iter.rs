@@ -47,7 +47,7 @@ where
 
 pub fn rand_step<R: Rng>(rng: &mut R, max_step: usize) -> usize {
     if max_step > 1 {
-        rng.gen_range(0..max_step)
+        rng.random_range(0..max_step)
     } else {
         0
     }

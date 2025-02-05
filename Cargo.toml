@@ -6,25 +6,25 @@ authors = ["vvh413"]
 description = "Steganography tool"
 
 [dependencies]
-anyhow = "1.0.72"
+anyhow = "1.0.95"
 bitvec = "1.0.1"
-image = { version = "0.24.6", default-features = false, features = ["png"] }
-libc = "0.2.147"
-mozjpeg-sys = "2.0.0"
-rand = { version = "0.8.5", default-features = false }
-rand_chacha = { version = "0.3.1", default-features = false }
-rand_seeder = "0.2.3"
-clap = { version = "4.3.17", features = ["derive"], optional = true }
-clap_complete = { version = "4.3.2", optional = true }
+image = { version = "0.25.5", default-features = false, features = ["png"] }
+libc = "0.2.169"
+mozjpeg-sys = "2.2.3"
+rand = { version = "0.9.0", default-features = false }
+rand_chacha = { version = "0.9.0", default-features = false }
+rand_seeder = "0.4.0"
+clap = { version = "4.5.28", features = ["derive"], optional = true }
+clap_complete = { version = "4.5.44", optional = true }
 derivative = "2.2.0"
 
 [dev-dependencies]
 criterion = "0.5.1"
-image = { version = "0.24.6", default-features = false, features = [
+image = { version = "0.25.5", default-features = false, features = [
   "png",
   "jpeg",
 ] }
-rand = "0.8.5"
+rand = "0.9.0"
 
 [features]
 cli = ["clap", "clap_complete"]

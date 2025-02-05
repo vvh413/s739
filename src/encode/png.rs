@@ -82,7 +82,7 @@ impl Encoder for PngEncoder {
             self.image.as_bytes(),
             self.image.width(),
             self.image.height(),
-            self.image.color(),
+            self.image.color().into(),
         )?;
         Ok(buffer)
     }
